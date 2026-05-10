@@ -1,239 +1,218 @@
-import React, { useState, useMemo } from "react";
-import { Search, Filter, Download, FileText } from "lucide-react";
-import { useNavigate } from "react-router";
-import { plantsData } from "../data";
-import { ImageWithFallback } from "./figma/ImageWithFallback";
+import React, { useState, useEffect, useRef } from "react";
+import { Link } from "react-router";
+import { Search, Filter } from "lucide-react";
+import { api, type Plant, type Condition } from "../../api/client";
+import { useLang } from "../../i18n/LangContext";
+import { t } from "../../i18n/translations";
+
+const PAGE = 30;
 
 export function DataTable() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [familyFilter, setFamilyFilter] = useState("All");
-  const [partFilter, setPartFilter] = useState("All");
-  const [sourceFilter, setSourceFilter] = useState("All");
-  const navigate = useNavigate();
+  const { lang } = useLang();
+  const tr = t[lang];
 
-  const families = ["All", ...Array.from(new Set(plantsData.map((p) => p.family)))];
-  const parts = ["All", ...Array.from(new Set(plantsData.flatMap((p) => p.partUsed.split(", "))))];
-  const sources = ["All", ...Array.from(new Set(plantsData.map((p) => p.references)))];
+  const [plants, setPlants] = useState<Plant[]>([]);
+  const [total, setTotal] = useState(0);
+  const [skip, setSkip] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const filteredData = useMemo(() => {
-    return plantsData.filter((plant) => {
-      const matchesSearch =
-        plant.scientificName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        plant.localName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        plant.traditionalUse.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        plant.phytochemicals.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesFamily = familyFilter === "All" || plant.family === familyFilter;
-      const matchesPart = partFilter === "All" || plant.partUsed.includes(partFilter);
-      const matchesSource = sourceFilter === "All" || plant.references === sourceFilter;
+  const [search, setSearch] = useState("");
+  const [conditionFilter, setConditionFilter] = useState("");
+  const [familyFilter, setFamilyFilter] = useState("");
+  const [conditions, setConditions] = useState<Condition[]>([]);
+  const [families, setFamilies] = useState<string[]>([]);
 
-      return matchesSearch && matchesFamily && matchesPart && matchesSource;
-    });
-  }, [searchQuery, familyFilter, partFilter, sourceFilter]);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    api.conditions().then(setConditions).catch(console.error);
+    api.plants({ limit: 200 }).then((r) => {
+      const fams = Array.from(
+        new Set(r.data.map((p) => p.family ?? "").filter(Boolean))
+      ).sort();
+      setFamilies(fams);
+    }).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setLoading(true);
+      api
+        .plants({
+          search: search || undefined,
+          condition: conditionFilter || undefined,
+          family: familyFilter || undefined,
+          skip,
+          limit: PAGE,
+        })
+        .then((r) => {
+          setPlants((prev) => (skip === 0 ? r.data : [...prev, ...r.data]));
+          setTotal(r.total);
+        })
+        .catch(() => setError(tr.error))
+        .finally(() => setLoading(false));
+    }, 250);
+  }, [search, conditionFilter, familyFilter, skip]);
+
+  function handleFilterChange(setter: (v: string) => void, v: string) {
+    setter(v);
+    setSkip(0);
+    setPlants([]);
+  }
+
+  function sourceLabel(s: string | null) {
+    if (!s) return "—";
+    if (s.includes("Neelam")) return "Neelam";
+    if (s.includes("Divakar")) return "Divakar";
+    if (s.includes("Phyto")) return "Phyto";
+    return s;
+  }
 
   return (
-    <div className="w-full flex flex-col gap-6 font-sans">
-      <div className="flex flex-col md:flex-row gap-6 justify-between items-start md:items-end bg-white p-6 rounded-3xl shadow-[0_4px_24px_rgba(0,0,0,0.03)] border border-stone-100">
-        
-        {/* Search Input */}
-        <div className="flex flex-col gap-2 w-full md:w-1/3">
-          <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider pl-1">
-            Search: Plant, Disease, Compound
-          </label>
-          <div className="relative group">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400 group-focus-within:text-emerald-500 transition-colors" />
-            <input
-              type="text"
-              placeholder="Search..."
-              className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all placeholder:text-stone-400 font-medium"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+    <div className="flex flex-col gap-6">
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+          <input
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            placeholder={tr.search_placeholder}
+            value={search}
+            onChange={(e) => handleFilterChange(setSearch, e.target.value)}
+          />
         </div>
+        <div className="relative">
+          <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400 pointer-events-none" />
+          <select
+            className="pl-10 pr-4 py-2.5 rounded-xl border border-stone-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 appearance-none"
+            value={conditionFilter}
+            onChange={(e) => handleFilterChange(setConditionFilter, e.target.value)}
+          >
+            <option value="">{tr.all_conditions}</option>
+            {conditions.map((c) => (
+              <option key={c.id} value={c.name}>
+                {c.name} ({c.plant_count})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="relative">
+          <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400 pointer-events-none" />
+          <select
+            className="pl-10 pr-4 py-2.5 rounded-xl border border-stone-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 appearance-none"
+            value={familyFilter}
+            onChange={(e) => handleFilterChange(setFamilyFilter, e.target.value)}
+          >
+            <option value="">{tr.all_families}</option>
+            {families.map((f) => (
+              <option key={f} value={f}>{f}</option>
+            ))}
+          </select>
+        </div>
+      </div>
 
-        {/* Filters and Actions */}
-        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto items-end">
-          
-          <div className="flex flex-col gap-2 w-full sm:w-auto">
-            <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider pl-1 whitespace-nowrap">
-              Filter by: Family
-            </label>
-            <div className="relative group">
-              <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400 group-focus-within:text-emerald-500 transition-colors pointer-events-none" />
-              <select
-                className="w-full pl-10 pr-10 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm font-medium text-stone-700 appearance-none focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all cursor-pointer"
-                value={familyFilter}
-                onChange={(e) => setFamilyFilter(e.target.value)}
-              >
-                {families.map((f) => (
-                  <option key={f} value={f}>
-                    {f}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </div>
-            </div>
-          </div>
+      {/* Count */}
+      <p className="text-sm text-stone-500">
+        {tr.showing} {plants.length} {tr.of} {total} {tr.results}
+      </p>
 
-          <div className="flex flex-col gap-2 w-full sm:w-auto">
-            <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider pl-1 whitespace-nowrap">
-              Part Used
-            </label>
-            <div className="relative group">
-              <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400 group-focus-within:text-emerald-500 transition-colors pointer-events-none" />
-              <select
-                className="w-full pl-10 pr-10 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm font-medium text-stone-700 appearance-none focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all cursor-pointer"
-                value={partFilter}
-                onChange={(e) => setPartFilter(e.target.value)}
-              >
-                {parts.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex flex-col gap-2 w-full sm:w-auto">
-            <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider pl-1 whitespace-nowrap">
-              Source
-            </label>
-            <div className="relative group">
-              <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400 group-focus-within:text-emerald-500 transition-colors pointer-events-none" />
-              <select
-                className="w-full pl-10 pr-10 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm font-medium text-stone-700 appearance-none focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all cursor-pointer"
-                value={sourceFilter}
-                onChange={(e) => setSourceFilter(e.target.value)}
-              >
-                {sources.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </div>
-            </div>
-          </div>
+      {error && <p className="text-red-600 text-sm">{error}</p>}
 
-          <button className="self-end flex items-center justify-center gap-2 bg-stone-900 text-white px-5 py-3 rounded-xl text-sm font-semibold hover:bg-emerald-800 transition-colors h-[46px] w-full sm:w-auto shadow-md shadow-stone-200">
-            <Download className="h-4 w-4" />
-            Export CSV
+      {/* Table */}
+      <div className="overflow-x-auto rounded-2xl border border-stone-200 shadow-sm bg-white">
+        <table className="min-w-full text-sm">
+          <thead className="bg-stone-50 border-b border-stone-200 text-xs uppercase tracking-wider">
+            <tr>
+              {[tr.col_plant, tr.col_local, tr.col_family, tr.col_part, tr.col_conditions, tr.col_compounds, tr.col_source, ""].map(
+                (h, i) => (
+                  <th key={i} className="px-5 py-3 text-start font-semibold text-stone-500 whitespace-nowrap">
+                    {h}
+                  </th>
+                )
+              )}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-stone-100">
+            {plants.map((p) => (
+              <tr key={p.id} className="hover:bg-stone-50/60 transition-colors">
+                <td className="px-5 py-3.5 font-medium text-stone-900 italic whitespace-nowrap max-w-[200px]">
+                  <span className="truncate block">{p.scientific_name}</span>
+                </td>
+                <td className="px-5 py-3.5 text-stone-700 whitespace-nowrap">
+                  {p.local_name || "—"}
+                </td>
+                <td className="px-5 py-3.5 whitespace-nowrap">
+                  {p.family ? (
+                    <span className="bg-emerald-50 text-emerald-700 text-xs font-semibold px-2 py-0.5 rounded-md border border-emerald-100">
+                      {p.family}
+                    </span>
+                  ) : "—"}
+                </td>
+                <td className="px-5 py-3.5 text-stone-600 whitespace-nowrap text-xs">
+                  {p.part_used || "—"}
+                </td>
+                <td className="px-5 py-3.5">
+                  <div className="flex flex-wrap gap-1 max-w-[180px]">
+                    {p.conditions.slice(0, 2).map((c) => (
+                      <span key={c} className="inline-block bg-red-50 text-red-700 text-xs px-2 py-0.5 rounded-full whitespace-nowrap border border-red-100">
+                        {c}
+                      </span>
+                    ))}
+                    {p.conditions.length > 2 && (
+                      <span className="inline-block bg-stone-100 text-stone-500 text-xs px-2 py-0.5 rounded-full">
+                        +{p.conditions.length - 2}
+                      </span>
+                    )}
+                  </div>
+                </td>
+                <td className="px-5 py-3.5 text-stone-500 whitespace-nowrap text-xs">
+                  {p.compounds.length > 0 ? (
+                    <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full border border-blue-100">
+                      {p.compounds.length} cpd{p.compounds.length > 1 ? "s" : ""}
+                    </span>
+                  ) : "—"}
+                </td>
+                <td className="px-5 py-3.5 whitespace-nowrap">
+                  <span className="bg-stone-100 text-stone-600 text-xs px-2 py-0.5 rounded-full">
+                    {sourceLabel(p.source)}
+                  </span>
+                </td>
+                <td className="px-5 py-3.5">
+                  <Link
+                    to={`/plant/${p.id}`}
+                    className="text-emerald-600 hover:text-emerald-800 font-semibold whitespace-nowrap text-xs underline-offset-2 hover:underline"
+                  >
+                    {tr.view_profile} →
+                  </Link>
+                </td>
+              </tr>
+            ))}
+            {loading && (
+              <tr>
+                <td colSpan={8} className="px-5 py-8 text-center text-stone-400">{tr.loading}</td>
+              </tr>
+            )}
+            {!loading && plants.length === 0 && (
+              <tr>
+                <td colSpan={8} className="px-5 py-8 text-center text-stone-400">{tr.no_data}</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {plants.length < total && !loading && (
+        <div className="flex justify-center">
+          <button
+            onClick={() => setSkip((s) => s + PAGE)}
+            className="px-6 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors shadow"
+          >
+            {tr.load_more}
           </button>
         </div>
-      </div>
-
-      <div className="bg-white rounded-3xl shadow-[0_4px_24px_rgba(0,0,0,0.03)] border border-stone-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-stone-600">
-            <thead className="bg-stone-50/50 text-stone-500 font-semibold border-b border-stone-100 text-xs uppercase tracking-wider">
-              <tr>
-                <th className="px-6 py-5 rounded-tl-3xl">Image</th>
-                <th className="px-6 py-5">Family</th>
-                <th className="px-6 py-5">Scientific Name</th>
-                <th className="px-6 py-5">Local Name</th>
-                <th className="px-6 py-5">Part Used</th>
-                <th className="px-6 py-5 min-w-[150px]">Traditional Use</th>
-                <th className="px-6 py-5">Phytochemicals</th>
-                <th className="px-6 py-5">IMPPAT ID</th>
-                <th className="px-6 py-5 rounded-tr-3xl min-w-[160px]">References</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-stone-100">
-              {filteredData.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="px-6 py-16 text-center text-stone-400 bg-white">
-                    <div className="flex flex-col items-center justify-center gap-3">
-                      <FileText className="h-10 w-10 text-stone-200" />
-                      <p className="font-medium text-stone-500">No plants match your search criteria.</p>
-                      <button 
-                        onClick={() => {
-                          setSearchQuery("");
-                          setFamilyFilter("All");
-                          setPartFilter("All");
-                          setSourceFilter("All");
-                        }}
-                        className="text-emerald-600 hover:text-emerald-700 font-medium mt-2 underline"
-                      >
-                        Clear filters
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredData.map((plant) => (
-                  <tr 
-                    key={plant.id} 
-                    onClick={() => navigate(`/plant/${plant.id}`)}
-                    className="hover:bg-stone-50/50 transition-colors group bg-white cursor-pointer"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="h-14 w-14 rounded-full overflow-hidden border-2 border-white shadow-sm bg-stone-100 relative">
-                        <ImageWithFallback 
-                          src={plant.imageUrl} 
-                          alt={plant.scientificName} 
-                          className="absolute inset-0 h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        />
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                        {plant.family}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap font-medium text-stone-900 italic">
-                      {plant.scientificName}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap font-medium text-stone-700">
-                      {plant.localName}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-stone-100 text-stone-600 border border-stone-200">
-                        {plant.partUsed}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-stone-700 font-medium">
-                      {plant.traditionalUse}
-                    </td>
-                    <td className="px-6 py-4 text-stone-700 font-mono text-xs font-semibold">
-                      {plant.phytochemicals}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 font-mono text-xs font-bold cursor-pointer transition-colors border border-blue-100">
-                        {plant.imppatId}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-xs font-medium text-stone-500 leading-snug">
-                      {plant.references}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        
-        {/* Microcopy & Footer */}
-        <div className="bg-stone-50/50 border-t border-stone-100 px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-stone-500">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-emerald-500"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M12 16V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M12 8H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            <p className="text-xs font-medium">
-              Data is curated from ethnobotanical studies and phytochemical databases to ensure accuracy and traceability.
-            </p>
-          </div>
-          <p className="text-xs font-bold text-stone-400 bg-white px-3 py-1.5 rounded-full shadow-sm border border-stone-100">
-            Showing {filteredData.length} records
-          </p>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
