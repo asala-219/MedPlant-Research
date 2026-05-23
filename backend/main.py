@@ -25,7 +25,7 @@ from graph import (
     GRAPH_PATH,
     DB_PATH,
 )
-from chatbot import chat as rag_chat
+from chatbot import chat as rag_chat, chat_with_debug as rag_chat_debug
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -366,10 +366,25 @@ def chat_endpoint(req: ChatRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/api/chat/debug")
+def chat_debug_endpoint(req: ChatRequest):
+    """Returns the LLM reply plus full retrieval metadata for evaluation."""
+    try:
+        return rag_chat_debug(req.message, req.history if req.history else None)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ---------------------------------------------------------------------------
 # Run
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        timeout_keep_alive=300,
+    )
