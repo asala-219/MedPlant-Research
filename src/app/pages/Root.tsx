@@ -1,20 +1,30 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Outlet, Link, useLocation } from "react-router";
 import { Leaf, Network, MessageSquare, Database, Languages } from "lucide-react";
 import { API_BASE_URL } from "../../api/client";
 import { LangProvider, useLang } from "../../i18n/LangContext";
 import { t } from "../../i18n/translations";
+import { AssistantProvider, useAssistant } from "../components/AssistantSidebar";
 
 function NavInner() {
   const location = useLocation();
   const { lang, toggle } = useLang();
+  const { toggleAssistant } = useAssistant();
   const tr = t[lang];
+
+  useEffect(() => {
+    if (!location.hash) return;
+    const id = location.hash.replace("#", "");
+    const timer = setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [location.pathname, location.hash, location.key]);
 
   const navLinks = [
     { to: "/", label: tr.nav_home, icon: <Leaf className="w-4 h-4" /> },
     { to: "/#database", label: tr.nav_database, icon: <Database className="w-4 h-4" /> },
     { to: "/graph", label: tr.nav_graph, icon: <Network className="w-4 h-4" /> },
-    { to: "/chat", label: tr.nav_chat, icon: <MessageSquare className="w-4 h-4" /> },
   ];
 
   const isActive = (to: string) => {
@@ -29,9 +39,11 @@ function NavInner() {
         <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center shadow-inner shadow-emerald-700">
-              <Leaf className="w-5 h-5 text-white" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="OmaniEthnoDBKG"
+              className="w-10 h-10 object-contain"
+            />
             <div className="hidden sm:block">
               <p className="text-sm font-bold font-serif text-stone-900 leading-none">OmaniEthnoDBKG</p>
               <p className="text-[10px] text-stone-400 font-medium leading-none mt-0.5">{tr.nav_subtitle}</p>
@@ -54,6 +66,13 @@ function NavInner() {
                 {label}
               </Link>
             ))}
+            <button
+              onClick={toggleAssistant}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-stone-600 hover:text-emerald-700 hover:bg-stone-50 transition-colors"
+            >
+              <MessageSquare className="w-4 h-4" />
+              {tr.nav_chat}
+            </button>
           </nav>
 
           {/* Actions */}
@@ -96,6 +115,13 @@ function NavInner() {
               {label}
             </Link>
           ))}
+          <button
+            onClick={toggleAssistant}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap text-stone-600 hover:text-emerald-700 transition-colors"
+          >
+            <MessageSquare className="w-4 h-4" />
+            {tr.nav_chat}
+          </button>
         </div>
       </header>
 
@@ -105,8 +131,8 @@ function NavInner() {
       <footer className="bg-stone-900 text-stone-400 py-12 border-t border-stone-800">
         <div className="max-w-[1400px] mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-stone-700 flex items-center justify-center">
-              <Leaf className="w-4 h-4 text-stone-300" />
+            <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center p-1">
+              <img src="/logo.png" alt="OmaniEthnoDBKG" className="w-full h-full object-contain" />
             </div>
             <div>
               <p className="text-stone-300 font-bold font-serif text-sm">OmaniEthnoDBKG</p>
@@ -126,7 +152,9 @@ function NavInner() {
 export function Root() {
   return (
     <LangProvider>
-      <NavInner />
+      <AssistantProvider>
+        <NavInner />
+      </AssistantProvider>
     </LangProvider>
   );
 }

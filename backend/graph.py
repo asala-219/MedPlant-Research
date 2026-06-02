@@ -2,7 +2,16 @@
 Knowledge graph builder and traversal engine.
 
 Node types : Plant, Condition, Compound, Family
-Edge types  : TREATS, CONTAINS, BELONGS_TO, SHARES_COMPOUND, CO_TREATS
+Edge types :
+  Primary (asserted from the data)
+    TREATS          Plant   -> Condition
+    CONTAINS        Plant   -> Compound
+    BELONGS_TO      Plant   -> Family
+  Derived (inferred co-occurrence; tagged ``"derived": True`` and carry a
+  ``"weight"`` = number of shared neighbours; capped per node to keep the
+  graph readable)
+    CO_TREATS       Plant  <-> Plant   (share >= 1 Condition)
+    SHARES_COMPOUND Plant  <-> Plant   (share >= 1 Compound)
 """
 
 import sqlite3
@@ -17,6 +26,50 @@ GRAPH_PATH = Path(__file__).parent / "knowledge_graph.json"
 # ---------------------------------------------------------------------------
 # Build
 # ---------------------------------------------------------------------------
+
+def _derived_edges(
+    groups: dict[int, list[int]],
+    edge_type: str,
+    cap_per_node: int = 6,
+) -> list[dict]:
+    """Build weighted, undirected plant<->plant edges from co-occurrence groups.
+
+    ``groups`` maps a shared entity id (condition or compound) to the plant ids
+    linked to it. The weight of a plant pair = how many such entities they
+    share. To keep the graph readable we keep only each plant's strongest
+    ``cap_per_node`` partners (a fully connected condition with N plants would
+    otherwise emit N*(N-1)/2 edges).
+    """
+    pair_weight: dict[tuple[int, int], int] = defaultdict(int)
+    for members in groups.values():
+        uniq = sorted(set(members))
+        for i in range(len(uniq)):
+            for j in range(i + 1, len(uniq)):
+                pair_weight[(uniq[i], uniq[j])] += 1
+
+    # rank each plant's partners by shared weight, keep the top `cap_per_node`
+    by_node: dict[int, list[tuple[int, int]]] = defaultdict(list)
+    for (a, b), w in pair_weight.items():
+        by_node[a].append((w, b))
+        by_node[b].append((w, a))
+
+    kept: dict[tuple[int, int], int] = {}
+    for node, partners in by_node.items():
+        partners.sort(reverse=True)
+        for w, other in partners[:cap_per_node]:
+            kept[tuple(sorted((node, other)))] = w
+
+    return [
+        {
+            "source": f"plant:{a}",
+            "target": f"plant:{b}",
+            "type": edge_type,
+            "weight": w,
+            "derived": True,
+        }
+        for (a, b), w in kept.items()
+    ]
+
 
 def build_graph() -> dict:
     con = sqlite3.connect(DB_PATH)
@@ -92,6 +145,10 @@ def build_graph() -> dict:
         comp_plants[r["compound_id"]].append(r["plant_id"])
 
     con.close()
+
+    # ---- Derived plant<->plant edges (co-occurrence) ----
+    edges.extend(_derived_edges(cond_plants, "CO_TREATS"))
+    edges.extend(_derived_edges(comp_plants, "SHARES_COMPOUND"))
 
     graph = {
         "nodes": list(nodes.values()),

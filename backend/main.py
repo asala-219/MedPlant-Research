@@ -292,21 +292,24 @@ def graph_search(q: str = Query(..., min_length=1)):
 
 @app.get("/api/graph/full")
 def full_graph(
-    types: Optional[str] = Query(None, description="Comma-separated node types to include: Plant,Condition,Compound,Family")
+    types: Optional[str] = Query(None, description="Comma-separated node types to include: Plant,Condition,Compound,Family"),
+    include_derived: bool = Query(False, description="Include derived plant<->plant edges (CO_TREATS, SHARES_COMPOUND)"),
 ):
-    """Return the full graph, optionally filtered by node type."""
+    """Return the full graph, optionally filtered by node type.
+
+    Derived co-occurrence edges are excluded by default so the curated views
+    (e.g. Plant+Condition) stay readable; pass ``include_derived=true`` to see
+    the plant similarity layer.
+    """
     g = load_graph()
+    edges = g["edges"] if include_derived else [e for e in g["edges"] if not e.get("derived")]
     if types:
         allowed = {t.strip() for t in types.split(",")}
         included_ids = {n["id"] for n in g["nodes"] if n["type"] in allowed}
         nodes = [n for n in g["nodes"] if n["id"] in included_ids]
-        edges = [e for e in g["edges"] if e["source"] in included_ids and e["target"] in included_ids]
+        edges = [e for e in edges if e["source"] in included_ids and e["target"] in included_ids]
         return {"nodes": nodes, "edges": edges}
-    # Return a compact version (omit internal index keys)
-    return {
-        "nodes": g["nodes"],
-        "edges": g["edges"],
-    }
+    return {"nodes": g["nodes"], "edges": edges}
 
 
 # ---------------------------------------------------------------------------

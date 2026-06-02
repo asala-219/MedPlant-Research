@@ -182,11 +182,17 @@ CANONICAL = {
 
 
 def extract_conditions(text: str) -> list[str]:
-    """Extract canonical condition names from a free-text traditional_use string."""
+    """Extract canonical condition names from a free-text traditional_use string.
+
+    Matching is anchored to a word *start* boundary (``\\b`` before the keyword)
+    so inflections/plurals are still caught (wound -> wounds, allerg -> allergy)
+    while mid-word false positives are rejected (deliver !-> liver,
+    backbone !-> bone, hearing !-> ear).
+    """
     text_lower = text.lower()
     found = set()
     for kw in CONDITION_KEYWORDS:
-        if kw in text_lower:
+        if re.search(r"\b" + re.escape(kw), text_lower):
             canonical = CANONICAL.get(kw)
             if canonical:
                 found.add(canonical)
@@ -254,24 +260,48 @@ def build_db():
         reader = csv.DictReader(f)
         rows = list(reader)
 
-    # ---- plants (deduplicate by scientific_name) ----
-    plant_id_map: dict[str, int] = {}  # scientific_name → id
+    # ---- plants (aggregate the many CSV rows per plant) ----
+    # The source CSV has one row per (plant, phytochemical), so a single plant
+    # spans many rows whose `Traditional use` / `Part use` columns DIFFER.
+    # We must merge every row's text — otherwise we silently drop the majority
+    # of a plant's documented uses (and therefore its conditions).
+    AGG_FIELDS = {
+        "family": "Family",
+        "local_name": "Local Name",
+        "part_used": "Part use",
+        "traditional_use": "Traditional use",
+        "source": "Source",
+    }
+    plant_rows: dict[str, dict[str, list[str]]] = {}
+    plant_order: list[str] = []
 
     for row in rows:
         sci = row["Plant Name"].strip()
-        if not sci or sci in plant_id_map:
+        if not sci:
             continue
+        if sci not in plant_rows:
+            plant_rows[sci] = {k: [] for k in AGG_FIELDS}
+            plant_order.append(sci)
+        rec = plant_rows[sci]
+        for key, col in AGG_FIELDS.items():
+            val = (row.get(col) or "").strip()
+            if val and val not in rec[key]:
+                rec[key].append(val)
+
+    plant_id_map: dict[str, int] = {}  # scientific_name → id
+
+    for sci in plant_order:
+        rec = plant_rows[sci]
+        # family is a single taxonomic fact → first value; the rest are merged.
+        family = rec["family"][0] if rec["family"] else None
+        local_name = ", ".join(rec["local_name"]) or None
+        part_used = "; ".join(rec["part_used"]) or None
+        traditional_use = "; ".join(rec["traditional_use"]) or None
+        source = "; ".join(rec["source"]) or None
         cur.execute(
             "INSERT INTO plants (family, scientific_name, local_name, part_used, traditional_use, source) "
             "VALUES (?,?,?,?,?,?)",
-            (
-                row["Family"].strip() or None,
-                sci,
-                row["Local Name"].strip() or None,
-                row["Part use"].strip() or None,
-                row["Traditional use"].strip() or None,
-                row["Source"].strip() or None,
-            ),
+            (family, sci, local_name, part_used, traditional_use, source),
         )
         plant_id_map[sci] = cur.lastrowid
 

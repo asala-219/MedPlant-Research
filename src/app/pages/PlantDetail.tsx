@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router";
 import { ArrowLeft, Leaf, FlaskConical, Stethoscope, BookOpen, Network } from "lucide-react";
 import { api, type Plant, type GraphData } from "../../api/client";
-import { KnowledgeGraphViz } from "../components/KnowledgeGraphViz";
+import { KnowledgeGraphViz, GraphLegend } from "../components/KnowledgeGraphViz";
 import { useLang } from "../../i18n/LangContext";
 import { t } from "../../i18n/translations";
 
@@ -24,7 +24,9 @@ export function PlantDetail() {
     setLoading(true);
     Promise.all([
       api.plant(numId),
-      api.plantGraph(numId, 2),
+      // Depth 1 = this plant's own conditions/compounds/family only.
+      // Depth 2 explodes through hub conditions into an unreadable hairball.
+      api.plantGraph(numId, 1),
     ])
       .then(([p, g]) => {
         setPlant(p);
@@ -57,12 +59,13 @@ export function PlantDetail() {
       {/* Back */}
       <Link
         to="/"
-        className="inline-flex items-center gap-2 text-stone-500 hover:text-emerald-700 font-medium mb-8 group"
+        aria-label={tr.back}
+        title={tr.back}
+        className="inline-flex items-center text-stone-500 hover:text-emerald-700 mb-8 group"
       >
         <div className="w-8 h-8 rounded-full bg-white border border-stone-200 flex items-center justify-center group-hover:border-emerald-200 group-hover:bg-emerald-50 transition-colors">
           <ArrowLeft className="w-4 h-4" />
         </div>
-        {tr.back}
       </Link>
 
       {/* Header */}
@@ -200,10 +203,16 @@ export function PlantDetail() {
                 </div>
                 <div>
                   <h2 className="text-xl font-serif font-bold text-stone-900">Relationship Graph</h2>
-                  <p className="text-xs text-stone-400">{graph.nodes.length} nodes · {graph.edges.length} edges</p>
+                  <p className="text-xs text-stone-400">
+                    How <span className="italic">{plant.scientific_name}</span> connects to its conditions, compounds &amp; family
+                  </p>
                 </div>
               </div>
-              <KnowledgeGraphViz data={graph} height={320} />
+              <KnowledgeGraphViz data={graph} height={360} />
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                <GraphLegend compact />
+                <p className="text-xs text-stone-400">Hover a node to focus its links · scroll to zoom</p>
+              </div>
             </div>
           )}
         </div>

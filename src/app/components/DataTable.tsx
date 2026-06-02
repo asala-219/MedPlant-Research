@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link } from "react-router";
-import { Search, Filter } from "lucide-react";
+import { useNavigate } from "react-router";
+import { Search, Filter, ChevronRight } from "lucide-react";
 import { api, type Plant, type Condition } from "../../api/client";
 import { useLang } from "../../i18n/LangContext";
 import { t } from "../../i18n/translations";
@@ -10,6 +10,7 @@ const PAGE = 30;
 export function DataTable() {
   const { lang } = useLang();
   const tr = t[lang];
+  const navigate = useNavigate();
 
   const [plants, setPlants] = useState<Plant[]>([]);
   const [total, setTotal] = useState(0);
@@ -136,7 +137,12 @@ export function DataTable() {
           </thead>
           <tbody className="divide-y divide-stone-100">
             {plants.map((p) => (
-              <tr key={p.id} className="hover:bg-stone-50/60 transition-colors">
+              <tr
+                key={p.id}
+                onClick={() => navigate(`/plant/${p.id}`)}
+                className="group cursor-pointer hover:bg-emerald-50/50 transition-colors"
+                title={tr.view_profile}
+              >
                 <td className="px-5 py-3.5 font-medium text-stone-900 italic whitespace-nowrap max-w-[200px]">
                   <span className="truncate block">{p.scientific_name}</span>
                 </td>
@@ -179,13 +185,8 @@ export function DataTable() {
                     {sourceLabel(p.source)}
                   </span>
                 </td>
-                <td className="px-5 py-3.5">
-                  <Link
-                    to={`/plant/${p.id}`}
-                    className="text-emerald-600 hover:text-emerald-800 font-semibold whitespace-nowrap text-xs underline-offset-2 hover:underline"
-                  >
-                    {tr.view_profile} →
-                  </Link>
+                <td className="px-5 py-3.5 text-end">
+                  <ChevronRight className="inline-block w-4 h-4 text-stone-300 group-hover:text-emerald-600 transition-colors rtl:rotate-180" />
                 </td>
               </tr>
             ))}

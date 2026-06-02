@@ -15,6 +15,7 @@ Author: OmaniEthnoDBKG Research Project
 
 from __future__ import annotations
 
+import heapq
 import math
 import re
 import sqlite3
@@ -143,6 +144,10 @@ EDGE_WEIGHTS = {
     "TREATS": 1.0,
     "CONTAINS": 1.2,
     "BELONGS_TO": 1.5,
+    # Derived plant<->plant links: useful for "similar plants" reasoning but
+    # weaker than asserted facts, so they cost more to traverse.
+    "CO_TREATS": 1.4,
+    "SHARES_COMPOUND": 1.6,
 }
 
 # Ranking weights
@@ -503,38 +508,43 @@ class GraphRetriever:
         if not analysis.entities:
             return []
 
-        # Dijkstra-like weighted BFS from all linked entities
+        # Proper weighted shortest-path traversal (Dijkstra) seeded from every
+        # linked entity. A binary heap + `settled` set guarantees each node is
+        # finalised once at its true minimum cost; the depth bound stops the
+        # search from wandering too far through the graph.
         MAX_DEPTH = 3
         dist: dict[str, float] = {}
+        depth_of: dict[str, int] = {}
         parent: dict[str, tuple[str, str]] = {}  # child -> (parent, edge_type)
+        settled: set[str] = set()
         results = []
 
-        # Initialize from entity nodes
-        frontier: list[tuple[float, str, int]] = []  # (cost, node_id, depth)
+        # (cost, depth, node_id) — node_id breaks ties deterministically
+        heap: list[tuple[float, int, str]] = []
         for entity in analysis.entities[:5]:
-            dist[entity.node_id] = 0.0
-            frontier.append((0.0, entity.node_id, 0))
+            if 0.0 < dist.get(entity.node_id, float("inf")):
+                dist[entity.node_id] = 0.0
+                depth_of[entity.node_id] = 0
+                heapq.heappush(heap, (0.0, 0, entity.node_id))
 
-        # Sort frontier by cost (simple priority)
-        frontier.sort()
-        visited_order = []
-
-        while frontier:
-            cost, nid, depth = frontier.pop(0)
-            if depth >= MAX_DEPTH:
+        while heap:
+            cost, depth, nid = heapq.heappop(heap)
+            if nid in settled:
                 continue
-            if cost > dist.get(nid, float("inf")):
+            settled.add(nid)
+            if depth >= MAX_DEPTH:
                 continue
 
             for neighbor_id, etype, direction in self._adj.get(nid, []):
+                if neighbor_id in settled:
+                    continue
                 edge_w = EDGE_WEIGHTS.get(etype, 2.0)
                 new_cost = cost + edge_w
                 if new_cost < dist.get(neighbor_id, float("inf")):
                     dist[neighbor_id] = new_cost
+                    depth_of[neighbor_id] = depth + 1
                     parent[neighbor_id] = (nid, etype)
-                    frontier.append((new_cost, neighbor_id, depth + 1))
-                    frontier.sort()
-                    visited_order.append(neighbor_id)
+                    heapq.heappush(heap, (new_cost, depth + 1, neighbor_id))
 
         # Extract Plant nodes from traversal results
         for nid, total_cost in dist.items():

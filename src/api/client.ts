@@ -88,6 +88,8 @@ export interface GraphEdge {
   source: string;
   target: string;
   type: "TREATS" | "CONTAINS" | "BELONGS_TO" | "CO_TREATS" | "SHARES_COMPOUND";
+  weight?: number;
+  derived?: boolean;
 }
 
 export interface GraphData {

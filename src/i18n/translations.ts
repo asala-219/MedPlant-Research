@@ -69,7 +69,7 @@ export const t = {
     node_condition: "Condition",
     node_compound: "Compound",
     node_family: "Family",
-    graph_tip: "Click any node to inspect it. Drag to reposition. Scroll to zoom.",
+    graph_tip: "Hover a node to spotlight its connections. Click to inspect. Drag to reposition. Scroll to zoom.",
 
     // Chat
     chat_title: "Ask OmaniEthno AI",
@@ -156,7 +156,7 @@ export const t = {
     node_condition: "حالة طبية",
     node_compound: "مركب",
     node_family: "عائلة",
-    graph_tip: "انقر فوق أي عقدة لفحصها. اسحب لإعادة تحديد الموضع. مرّر للتكبير.",
+    graph_tip: "مرّر فوق أي عقدة لإبراز ارتباطاتها. انقر لفحصها. اسحب لإعادة الموضع. مرّر للتكبير.",
 
     chat_title: "اسأل مساعد النباتات الطبية",
     chat_subtitle: "اطرح أسئلة حول النباتات الطبية العُمانية بالعربية أو الإنجليزية",
