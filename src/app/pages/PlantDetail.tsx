@@ -1,166 +1,220 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router";
-import { plantsData } from "../data";
-import { ImageWithFallback } from "../components/figma/ImageWithFallback";
-import { ArrowLeft, Leaf, FlaskConical, Stethoscope, BookOpen, Fingerprint } from "lucide-react";
+import { ArrowLeft, Leaf, FlaskConical, Stethoscope, BookOpen, Network } from "lucide-react";
+import { api, type Plant, type GraphData } from "../../api/client";
+import { KnowledgeGraphViz, GraphLegend } from "../components/KnowledgeGraphViz";
+import { useLang } from "../../i18n/LangContext";
+import { t } from "../../i18n/translations";
 
 export function PlantDetail() {
-  const { id } = useParams();
-  const plant = plantsData.find(p => p.id === id);
+  const { id } = useParams<{ id: string }>();
+  const { lang } = useLang();
+  const tr = t[lang];
+
+  const [plant, setPlant] = useState<Plant | null>(null);
+  const [graph, setGraph] = useState<GraphData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    if (!id) return;
+    const numId = parseInt(id, 10);
+
+    setLoading(true);
+    Promise.all([
+      api.plant(numId),
+      // Depth 1 = this plant's own conditions/compounds/family only.
+      // Depth 2 explodes through hub conditions into an unreadable hairball.
+      api.plantGraph(numId, 1),
+    ])
+      .then(([p, g]) => {
+        setPlant(p);
+        setGraph(g);
+      })
+      .catch(() => setError(tr.error))
+      .finally(() => setLoading(false));
   }, [id]);
 
-  if (!plant) {
+  if (loading) {
     return (
-      <main className="max-w-[1400px] mx-auto px-6 py-32 text-center flex flex-col items-center">
-        <div className="w-16 h-16 bg-stone-100 rounded-full flex items-center justify-center mb-6">
-          <Leaf className="w-8 h-8 text-stone-300" />
-        </div>
-        <h2 className="text-2xl font-bold font-serif text-stone-900 mb-2">Plant Not Found</h2>
-        <p className="text-stone-500 mb-8">The plant record you're looking for does not exist or has been removed.</p>
-        <Link 
-          to="/" 
-          className="inline-flex items-center gap-2 bg-stone-900 text-white px-6 py-3 rounded-xl font-medium hover:bg-emerald-800 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Return to Database
-        </Link>
+      <main className="max-w-5xl mx-auto px-6 py-24 text-center text-stone-400">
+        {tr.loading}
+      </main>
+    );
+  }
+
+  if (error || !plant) {
+    return (
+      <main className="max-w-5xl mx-auto px-6 py-24 text-center flex flex-col items-center gap-6">
+        <Leaf className="w-12 h-12 text-stone-200" />
+        <p className="text-stone-500">{error || "Plant not found."}</p>
+        <Link to="/" className="text-emerald-600 font-semibold hover:underline">{tr.back}</Link>
       </main>
     );
   }
 
   return (
-    <main className="max-w-[1400px] mx-auto px-6 py-10 pb-24">
-      {/* Back Button */}
-      <Link 
-        to="/" 
-        className="inline-flex items-center gap-2 text-stone-500 hover:text-emerald-700 font-medium mb-10 transition-colors group"
+    <main className="max-w-5xl mx-auto px-6 py-10 pb-24">
+      {/* Back */}
+      <Link
+        to="/"
+        aria-label={tr.back}
+        title={tr.back}
+        className="inline-flex items-center text-stone-500 hover:text-emerald-700 mb-8 group"
       >
         <div className="w-8 h-8 rounded-full bg-white border border-stone-200 flex items-center justify-center group-hover:border-emerald-200 group-hover:bg-emerald-50 transition-colors">
           <ArrowLeft className="w-4 h-4" />
         </div>
-        Back to Database
       </Link>
 
-      <div className="flex flex-col lg:flex-row gap-12 xl:gap-20">
-        
-        {/* Left Column: Image */}
-        <div className="w-full lg:w-[45%]">
-          <div className="sticky top-24">
-            <div className="aspect-[4/5] rounded-[2rem] overflow-hidden bg-stone-100 border border-stone-200 shadow-xl shadow-stone-200/50 relative group">
-              <ImageWithFallback 
-                src={plant.imageUrl} 
-                alt={plant.scientificName} 
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-stone-900/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </div>
-            
-            {/* Quick Facts Card */}
-            <div className="mt-8 bg-white border border-stone-100 p-6 rounded-3xl shadow-sm">
-              <h3 className="text-sm font-bold text-stone-400 uppercase tracking-wider mb-4">Quick Reference</h3>
-              <div className="flex flex-col gap-4">
-                <div className="flex justify-between items-center py-2 border-b border-stone-50">
-                  <span className="text-stone-500">Family</span>
-                  <span className="font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md text-sm">{plant.family}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-stone-50">
-                  <span className="text-stone-500">Part Used</span>
-                  <span className="font-semibold text-stone-700 bg-stone-100 border border-stone-200 px-2.5 py-1 rounded-md text-sm">{plant.partUsed}</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-stone-500">IMPPAT ID</span>
-                  <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md text-sm">{plant.imppatId}</span>
-                </div>
+      {/* Header */}
+      <div className="mb-8">
+        <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-full mb-4">
+          <Leaf className="w-3.5 h-3.5" />
+          {tr.plant_detail_title}
+        </span>
+        <h1 className="text-4xl md:text-5xl font-serif font-bold italic text-stone-900 tracking-tight mb-2">
+          {plant.scientific_name}
+        </h1>
+        {plant.local_name && (
+          <p className="text-2xl text-stone-500">
+            {tr.local}: <strong className="text-stone-800">{plant.local_name}</strong>
+          </p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left: Quick facts */}
+        <div className="lg:col-span-1 flex flex-col gap-4">
+          {/* Quick reference card */}
+          <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-sm">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-4">Quick Reference</h3>
+            <dl className="space-y-3 text-sm">
+              {[
+                { label: tr.family, value: plant.family },
+                { label: tr.part_used, value: plant.part_used },
+                { label: tr.source, value: plant.source },
+              ].map(({ label, value }) =>
+                value ? (
+                  <div key={label} className="flex justify-between gap-2">
+                    <dt className="text-stone-500">{label}</dt>
+                    <dd className="font-semibold text-stone-800 text-end">{value}</dd>
+                  </div>
+                ) : null
+              )}
+            </dl>
+          </div>
+
+          {/* Conditions */}
+          {plant.conditions.length > 0 && (
+            <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <Stethoscope className="w-4 h-4 text-red-500" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-stone-400">{tr.conditions_treated}</h3>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {plant.conditions.map((c) => (
+                  <span key={c} className="bg-red-50 text-red-700 border border-red-100 text-xs px-3 py-1.5 rounded-full font-medium">
+                    {c}
+                  </span>
+                ))}
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Related plants */}
+          {plant.related_plants && plant.related_plants.length > 0 && (
+            <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-sm">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-3">{tr.related_plants}</h3>
+              <ul className="space-y-2">
+                {plant.related_plants.slice(0, 6).map((r) => (
+                  <li key={r.id}>
+                    <Link
+                      to={`/plant/${r.id}`}
+                      className="text-sm text-emerald-700 italic hover:underline"
+                    >
+                      {r.scientific_name}
+                    </Link>
+                    {r.local_name && (
+                      <span className="text-stone-400 text-xs ml-1">({r.local_name})</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
-        {/* Right Column: Information */}
-        <div className="w-full lg:w-[55%] flex flex-col">
-          
-          {/* Header */}
-          <div className="mb-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 w-fit text-xs font-bold uppercase tracking-widest mb-4">
-              <Leaf className="w-3.5 h-3.5" />
-              <span>Plant Profile</span>
+        {/* Right: Main content */}
+        <div className="lg:col-span-2 flex flex-col gap-6">
+          {/* Traditional use */}
+          <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-6 opacity-[0.04] pointer-events-none">
+              <Stethoscope className="w-32 h-32" />
             </div>
-            
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold italic text-stone-900 mb-3 tracking-tight">
-              {plant.scientificName}
-            </h1>
-            
-            <div className="flex items-center gap-4 text-xl md:text-2xl text-stone-500 font-medium">
-              <span>Local Name: <strong className="text-stone-800">{plant.localName}</strong></span>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                <Stethoscope className="w-5 h-5" />
+              </div>
+              <h2 className="text-xl font-serif font-bold text-stone-900">{tr.traditional_use}</h2>
             </div>
+            <p className="text-stone-700 leading-relaxed">{plant.traditional_use || tr.no_data}</p>
           </div>
 
-          {/* Details Grid */}
-          <div className="flex flex-col gap-8">
-            
-            {/* Traditional Use */}
-            <div className="bg-white p-8 rounded-[2rem] border border-stone-100 shadow-[0_4px_24px_rgba(0,0,0,0.02)] relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
-                <Stethoscope className="w-48 h-48" />
+          {/* Compounds */}
+          {plant.compounds.length > 0 && (
+            <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-6 opacity-[0.04] pointer-events-none">
+                <FlaskConical className="w-32 h-32" />
               </div>
-              <div className="flex items-center gap-3 mb-6 relative z-10">
-                <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                  <Stethoscope className="w-6 h-6" />
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <FlaskConical className="w-5 h-5" />
                 </div>
-                <h2 className="text-2xl font-serif font-bold text-stone-900">Traditional Use</h2>
+                <h2 className="text-xl font-serif font-bold text-stone-900">
+                  {tr.phytochemicals}
+                  <span className="ms-2 text-sm font-normal text-stone-400">({plant.compounds.length})</span>
+                </h2>
               </div>
-              <p className="text-lg text-stone-600 leading-relaxed relative z-10">
-                In traditional Omani ethnomedicine, the {plant.partUsed.toLowerCase()} of <span className="italic">{plant.scientificName}</span> are primarily utilized for <strong className="text-stone-900">{plant.traditionalUse.toLowerCase()}</strong>. This application stems from generations of indigenous botanical knowledge passed down through local healers.
-              </p>
-            </div>
-
-            {/* Phytochemicals */}
-            <div className="bg-white p-8 rounded-[2rem] border border-stone-100 shadow-[0_4px_24px_rgba(0,0,0,0.02)] relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
-                <FlaskConical className="w-48 h-48" />
-              </div>
-              <div className="flex items-center gap-3 mb-6 relative z-10">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                  <FlaskConical className="w-6 h-6" />
-                </div>
-                <h2 className="text-2xl font-serif font-bold text-stone-900">Phytochemical Profile</h2>
-              </div>
-              <div className="relative z-10 flex flex-wrap gap-3">
-                {plant.phytochemicals.split(",").map((compound, idx) => (
-                  <div key={idx} className="flex items-center gap-2 bg-stone-50 border border-stone-200 px-4 py-2.5 rounded-xl">
-                    <Fingerprint className="w-4 h-4 text-emerald-500" />
-                    <span className="font-mono font-bold text-stone-700 text-sm">{compound.trim()}</span>
+              <div className="flex flex-wrap gap-2">
+                {plant.compounds.map((c) => (
+                  <div
+                    key={c.name}
+                    className="flex items-center gap-1.5 bg-stone-50 border border-stone-200 px-3 py-1.5 rounded-lg"
+                    title={c.imppat_id ?? undefined}
+                  >
+                    <span className="font-mono text-stone-700 text-xs font-semibold">{c.name}</span>
+                    {c.imppat_id && (
+                      <span className="text-blue-400 text-xs">({c.imppat_id})</span>
+                    )}
                   </div>
                 ))}
               </div>
-              <p className="text-stone-500 mt-6 leading-relaxed text-sm">
-                These isolated bioactive compounds are documented in standard phytochemical databases and are believed to be the primary metabolic agents responsible for the plant's ethnomedicinal properties.
-              </p>
             </div>
+          )}
 
-            {/* Scientific Literature */}
-            <div className="bg-stone-900 text-stone-300 p-8 rounded-[2rem] relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-8 opacity-[0.05] pointer-events-none">
-                <BookOpen className="w-48 h-48 text-white" />
-              </div>
-              <div className="flex items-center gap-3 mb-6 relative z-10">
-                <div className="w-12 h-12 rounded-2xl bg-stone-800 text-stone-300 flex items-center justify-center">
-                  <BookOpen className="w-6 h-6" />
+          {/* Plant graph */}
+          {graph && graph.nodes.length > 1 && (
+            <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                  <Network className="w-5 h-5" />
                 </div>
-                <h2 className="text-2xl font-serif font-bold text-white">Literature Source</h2>
+                <div>
+                  <h2 className="text-xl font-serif font-bold text-stone-900">Relationship Graph</h2>
+                  <p className="text-xs text-stone-400">
+                    How <span className="italic">{plant.scientific_name}</span> connects to its conditions, compounds &amp; family
+                  </p>
+                </div>
               </div>
-              <p className="text-lg leading-relaxed relative z-10 mb-4">
-                The traditional applications and phytochemical data for this specimen are corroborated by peer-reviewed literature:
-              </p>
-              <div className="bg-stone-800/50 border border-stone-700/50 p-5 rounded-xl text-stone-200 font-medium relative z-10">
-                {plant.references}
+              <KnowledgeGraphViz data={graph} height={360} />
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                <GraphLegend compact />
+                <p className="text-xs text-stone-400">Hover a node to focus its links · scroll to zoom</p>
               </div>
             </div>
-
-          </div>
+          )}
         </div>
       </div>
     </main>
