@@ -18,3 +18,7 @@ dist/
 # DB & graph (re-generated from CSV)
 backend/omani_ethno.db
 backend/knowledge_graph.json
+
+# Uploaded plant images (keep directory via .gitkeep)
+backend/uploads/plants/*
+!backend/uploads/plants/.gitkeep

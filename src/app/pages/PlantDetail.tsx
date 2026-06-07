@@ -1,15 +1,24 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router";
-import { ArrowLeft, Leaf, FlaskConical, Stethoscope, BookOpen, Network } from "lucide-react";
-import { api, type Plant, type GraphData } from "../../api/client";
+import { useParams, Link, useNavigate } from "react-router";
+import { ArrowLeft, Leaf, FlaskConical, Stethoscope, Network } from "lucide-react";
+import { api, nodePath, resolveAssetUrl, type Plant, type GraphData, type GraphNode } from "../../api/client";
 import { KnowledgeGraphViz, GraphLegend } from "../components/KnowledgeGraphViz";
+import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { useLang } from "../../i18n/LangContext";
 import { t } from "../../i18n/translations";
 
 export function PlantDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { lang } = useLang();
   const tr = t[lang];
+
+  function handleNodeClick(node: GraphNode) {
+    // Don't re-navigate to the plant we're already viewing.
+    if (node.type === "Plant" && String(node.db_id) === id) return;
+    const path = nodePath(node);
+    if (path) navigate(path);
+  }
 
   const [plant, setPlant] = useState<Plant | null>(null);
   const [graph, setGraph] = useState<GraphData | null>(null);
@@ -87,6 +96,22 @@ export function PlantDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Quick facts */}
         <div className="lg:col-span-1 flex flex-col gap-4">
+          {/* Plant image */}
+          <div className="bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-sm">
+            {resolveAssetUrl(plant.image_url) ? (
+              <ImageWithFallback
+                src={resolveAssetUrl(plant.image_url)!}
+                alt={plant.scientific_name}
+                className="w-full aspect-[4/3] object-cover"
+              />
+            ) : (
+              <div className="w-full aspect-[4/3] bg-stone-100 flex flex-col items-center justify-center gap-2 text-stone-400">
+                <Leaf className="w-10 h-10 opacity-40" />
+                <span className="text-xs">{tr.no_image}</span>
+              </div>
+            )}
+          </div>
+
           {/* Quick reference card */}
           <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-sm">
             <h3 className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-4">Quick Reference</h3>
@@ -208,10 +233,10 @@ export function PlantDetail() {
                   </p>
                 </div>
               </div>
-              <KnowledgeGraphViz data={graph} height={360} />
+              <KnowledgeGraphViz data={graph} height={360} onNodeClick={handleNodeClick} />
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                 <GraphLegend compact />
-                <p className="text-xs text-stone-400">Hover a node to focus its links · scroll to zoom</p>
+                <p className="text-xs text-stone-400">Click a node to open its page · hover to focus links · scroll to zoom</p>
               </div>
             </div>
           )}

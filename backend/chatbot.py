@@ -1,22 +1,24 @@
 """
-GraphRAG Chatbot — Enhanced pipeline with Ollama backend.
+GraphRAG Chatbot — Gemini API backend.
 
 Uses the GraphRAGPipeline for multi-strategy, graph-aware retrieval
-and Ollama (local LLM) for generation.
+and Google Gemini (cloud) for answer generation. No local Ollama required.
 """
 
 import os
-from pathlib import Path
 
-import httpx
+from google import genai
+from google.genai import errors as genai_errors
+from google.genai import types
 
 from graph_rag import GraphRAGPipeline, RetrievalOutput
 
-OLLAMA_BASE = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 # Singleton pipeline instance (caches graph + indexes on first call)
 _pipeline = GraphRAGPipeline()
+_client: genai.Client | None = None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -72,6 +74,75 @@ Based on the knowledge graph context above, answer the query. Follow the respons
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Gemini client
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _get_client() -> genai.Client:
+    global _client
+    if not GEMINI_API_KEY:
+        raise RuntimeError(
+            "GEMINI_API_KEY is not set. Add it to .env or export it. "
+            "Get a free key at https://aistudio.google.com/apikey"
+        )
+    if _client is None:
+        _client = genai.Client(api_key=GEMINI_API_KEY)
+    return _client
+
+
+def _gemini_chat(messages: list[dict]) -> str:
+    """Send messages to Gemini and return the assistant reply."""
+    system = SYSTEM_PROMPT
+    if messages and messages[0].get("role") == "system":
+        system = messages[0]["content"]
+
+    history: list[types.Content] = []
+    for turn in messages[1:-1]:
+        role = turn.get("role")
+        content = turn.get("content", "")
+        if role == "user":
+            history.append(types.Content(role="user", parts=[types.Part(text=content)]))
+        elif role == "assistant":
+            history.append(types.Content(role="model", parts=[types.Part(text=content)]))
+
+    final_user = messages[-1]["content"]
+
+    client = _get_client()
+    chat = client.chats.create(
+        model=GEMINI_MODEL,
+        config=types.GenerateContentConfig(
+            temperature=0.3,
+            max_output_tokens=1024,
+            system_instruction=system,
+        ),
+        history=history,
+    )
+
+    try:
+        response = chat.send_message(final_user)
+    except genai_errors.ClientError as exc:
+        if exc.code == 429:
+            raise RuntimeError(
+                "Gemini API quota exceeded. Wait a minute and retry, or check "
+                "https://ai.google.dev/gemini-api/docs/rate-limits"
+            ) from exc
+        raise RuntimeError(f"Gemini request failed: {exc}") from exc
+    except genai_errors.ServerError as exc:
+        if exc.code == 503:
+            raise RuntimeError(
+                "Gemini model is temporarily unavailable (high demand). "
+                "Please retry in a moment."
+            ) from exc
+        raise RuntimeError(f"Gemini request failed: {exc}") from exc
+    except Exception as exc:
+        raise RuntimeError(f"Gemini request failed: {exc}") from exc
+
+    if not response.text:
+        raise RuntimeError("Gemini returned an empty response.")
+    return response.text
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Chat function
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -80,9 +151,9 @@ def chat(
     message: str,
     history: list[dict] | None = None,
 ) -> str:
-    """Run the full GraphRAG pipeline and generate a response via Ollama."""
+    """Run the full GraphRAG pipeline and generate a response via Gemini."""
 
-    # Stage 1-4: Retrieval pipeline (top_k=8 to keep context manageable for 7B)
+    # Stage 1-4: Retrieval pipeline (top_k=8 to keep context manageable)
     result: RetrievalOutput = _pipeline.retrieve(message, top_k=8)
 
     # Build the LLM messages
@@ -103,22 +174,7 @@ def chat(
     )
     messages.append({"role": "user", "content": user_msg})
 
-    # Call Ollama
-    resp = httpx.post(
-        f"{OLLAMA_BASE}/api/chat",
-        json={
-            "model": OLLAMA_MODEL,
-            "messages": messages,
-            "stream": False,
-            "options": {
-                "temperature": 0.3,
-                "num_predict": 1024,
-            },
-        },
-        timeout=120.0,
-    )
-    resp.raise_for_status()
-    return resp.json()["message"]["content"]
+    return _gemini_chat(messages)
 
 
 def chat_with_debug(
@@ -143,21 +199,7 @@ def chat_with_debug(
     )
     messages.append({"role": "user", "content": user_msg})
 
-    resp = httpx.post(
-        f"{OLLAMA_BASE}/api/chat",
-        json={
-            "model": OLLAMA_MODEL,
-            "messages": messages,
-            "stream": False,
-            "options": {
-                "temperature": 0.3,
-                "num_predict": 1024,
-            },
-        },
-        timeout=120.0,
-    )
-    resp.raise_for_status()
-    reply = resp.json()["message"]["content"]
+    reply = _gemini_chat(messages)
 
     return {
         "reply": reply,

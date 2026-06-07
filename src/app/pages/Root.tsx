@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { Outlet, Link, useLocation } from "react-router";
-import { Leaf, Network, MessageSquare, Database, Languages } from "lucide-react";
+import { Leaf, Network, MessageSquare, Database, Languages, Shield } from "lucide-react";
 import { API_BASE_URL } from "../../api/client";
 import { LangProvider, useLang } from "../../i18n/LangContext";
 import { t } from "../../i18n/translations";
@@ -25,6 +25,7 @@ function NavInner() {
     { to: "/", label: tr.nav_home, icon: <Leaf className="w-4 h-4" /> },
     { to: "/#database", label: tr.nav_database, icon: <Database className="w-4 h-4" /> },
     { to: "/graph", label: tr.nav_graph, icon: <Network className="w-4 h-4" /> },
+    { to: "/admin", label: tr.nav_admin, icon: <Shield className="w-4 h-4" /> },
   ];
 
   const isActive = (to: string) => {
