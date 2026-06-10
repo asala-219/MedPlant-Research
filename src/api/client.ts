@@ -1,8 +1,25 @@
-/** Override with `.env.local`: VITE_API_BASE_URL=http://localhost:8000 */
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+/**
+ * Dev: leave unset so requests use same origin and Vite proxies to port 8000
+ * (works with port forwarding). Override with `.env.local` for direct backend
+ * access, e.g. VITE_API_BASE_URL=http://localhost:8000
+ */
+const rawBase = import.meta.env.VITE_API_BASE_URL?.trim();
+export const API_BASE_URL = rawBase || "";
 
 const BASE = API_BASE_URL;
+
+function buildApiUrl(path: string, params?: Record<string, string | number | undefined>): string {
+  let url = `${BASE}${path}`;
+  if (params) {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== "") searchParams.set(k, String(v));
+    });
+    const qs = searchParams.toString();
+    if (qs) url += `${url.includes("?") ? "&" : "?"}${qs}`;
+  }
+  return url;
+}
 
 /** Resolve plant image paths served by the FastAPI backend. */
 export function resolveAssetUrl(url: string | null | undefined): string | null {
@@ -15,13 +32,7 @@ export function resolveAssetUrl(url: string | null | undefined): string | null {
 }
 
 async function get<T>(path: string, params?: Record<string, string | number | undefined>): Promise<T> {
-  const url = new URL(`${BASE}${path}`);
-  if (params) {
-    Object.entries(params).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && v !== "") url.searchParams.set(k, String(v));
-    });
-  }
-  const res = await fetch(url.toString());
+  const res = await fetch(buildApiUrl(path, params));
   if (!res.ok) throw new Error(`API ${path} → ${res.status}`);
   return res.json();
 }
@@ -117,13 +128,7 @@ async function delAuth<T>(path: string, token: string): Promise<T> {
 }
 
 async function getAuth<T>(path: string, token: string, params?: Record<string, string | number | undefined>): Promise<T> {
-  const url = new URL(`${BASE}${path}`);
-  if (params) {
-    Object.entries(params).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && v !== "") url.searchParams.set(k, String(v));
-    });
-  }
-  const res = await fetch(url.toString(), {
+  const res = await fetch(buildApiUrl(path, params), {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) {
