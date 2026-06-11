@@ -1,7 +1,4 @@
 
-  # research
-
-  This is a code bundle for research. The original project is available at https://www.figma.com/design/gUUJQxNq39Cu1pIK9ZY4OE/research.
 
   ## Running the code
 
