@@ -158,7 +158,7 @@ def build_graph() -> dict:
         "_compound_plants":  {k: v for k, v in comp_plants.items()},
     }
 
-    GRAPH_PATH.write_text(json.dumps(graph, ensure_ascii=False, indent=2))
+    GRAPH_PATH.write_text(json.dumps(graph, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"Graph: {len(nodes)} nodes, {len(edges)} edges -> {GRAPH_PATH}")
     return graph
 
@@ -170,7 +170,7 @@ def build_graph() -> dict:
 def load_graph() -> dict:
     if not GRAPH_PATH.exists():
         return build_graph()
-    return json.loads(GRAPH_PATH.read_text())
+    return json.loads(GRAPH_PATH.read_text(encoding="utf-8"))
 
 
 def get_plant_neighborhood(plant_id: int, depth: int = 2) -> dict:
