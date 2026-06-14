@@ -160,7 +160,7 @@ def build_graph() -> dict:
 
     # Write to a temp file then rename so a mid-write crash never leaves a corrupt file.
     tmp = GRAPH_PATH.with_suffix(".tmp")
-    tmp.write_text(json.dumps(graph, ensure_ascii=False, indent=2))
+    tmp.write_text(json.dumps(graph, ensure_ascii=False, indent=2), encoding="utf-8")
     tmp.replace(GRAPH_PATH)
     print(f"Graph: {len(nodes)} nodes, {len(edges)} edges -> {GRAPH_PATH}")
     return graph
@@ -174,7 +174,7 @@ def load_graph() -> dict:
     if not GRAPH_PATH.exists():
         return build_graph()
     try:
-        text = GRAPH_PATH.read_text()
+        text = GRAPH_PATH.read_text(encoding="utf-8")
         if not text.strip():
             raise ValueError("empty")
         return json.loads(text)
