@@ -69,11 +69,9 @@ def db_is_ready() -> bool:
 
 
 def ensure_db() -> None:
-    """Build or rebuild the database when missing or empty."""
+    """Create the database from CSV on first run only. Never wipes an existing DB."""
     if db_is_ready():
         return
-    if DB_PATH.exists():
-        DB_PATH.unlink()
     build_db()
 
 # ---------------------------------------------------------------------------
@@ -309,10 +307,6 @@ CREATE INDEX IF NOT EXISTS idx_compounds_name ON compounds(name);
 def build_db():
     csv_path = resolve_csv_path()
     print(f"Loading ethnomedicinal data from {csv_path}")
-
-    # Remove stale DB
-    if DB_PATH.exists():
-        DB_PATH.unlink()
 
     con = sqlite3.connect(DB_PATH)
     cur = con.cursor()
