@@ -67,6 +67,13 @@ export function Admin() {
     setTimeout(() => { setMessage(""); setError(""); }, 4000);
   };
 
+  const autoLogout = useCallback(() => {
+    sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+    setToken(null);
+  }, []);
+
+  const is401 = (e: unknown) => String(e).includes("401") || String(e).toLowerCase().includes("invalid or expired");
+
   const loadTables = useCallback(async (tok: string) => {
     const data = await api.adminTables(tok);
     setTables(data);
@@ -82,11 +89,12 @@ export function Admin() {
       setSkip(res.skip);
       setPk(res.pk);
     } catch (e) {
+      if (is401(e)) { autoLogout(); return; }
       flash(e instanceof Error ? e.message : tr.error, true);
     } finally {
       setLoading(false);
     }
-  }, [tr.error]);
+  }, [tr.error, autoLogout]);
 
   useEffect(() => {
     api.adminStatus().then((s) => setEnabled(s.enabled)).catch(() => setEnabled(false));
@@ -95,12 +103,9 @@ export function Admin() {
   useEffect(() => {
     if (!token) return;
     loadTables(token).catch((e) => {
-      if (String(e).includes("401")) {
-        sessionStorage.removeItem(ADMIN_TOKEN_KEY);
-        setToken(null);
-      }
+      if (is401(e)) autoLogout();
     });
-  }, [token, loadTables]);
+  }, [token, loadTables, autoLogout]);
 
   useEffect(() => {
     if (!token) return;
