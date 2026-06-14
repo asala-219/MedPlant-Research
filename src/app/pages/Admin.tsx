@@ -17,7 +17,7 @@ import {
   type AdminTable,
   type AdminColumn,
 } from "../../api/client";
-import { PlantImageDropzone } from "../components/PlantImageDropzone";
+import { PlantImageManager } from "../components/PlantImageManager";
 import { useLang } from "../../i18n/LangContext";
 import { t } from "../../i18n/translations";
 
@@ -391,12 +391,11 @@ export function Admin() {
                         {columns.map((c) => (
                           <td key={c.name} className="px-4 py-2 max-w-[200px] text-stone-700">
                             {activeTable === "plants" && c.name === "image_url" && token ? (
-                              <PlantImageDropzone
+                              <PlantImageManager
                                 plantId={Number(row.id)}
-                                imageUrl={cellValue(row[c.name]) || null}
                                 token={token}
                                 compact
-                                onUploaded={() => loadRows(token, activeTable, skip, search)}
+                                onChanged={() => loadRows(token, activeTable, skip, search)}
                               />
                             ) : (
                               <span className="truncate block" title={cellValue(row[c.name])}>

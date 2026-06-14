@@ -400,11 +400,42 @@ def _remove_local_upload(url: str | None) -> None:
         path.unlink()
 
 
+def list_plant_images(plant_id: int) -> list[dict]:
+    if not _plant_exists(plant_id):
+        raise HTTPException(status_code=404, detail="Plant not found")
+    con = _connect()
+    cur = con.cursor()
+    cur.execute(
+        "SELECT id, url, sort_order FROM plant_images WHERE plant_id=? ORDER BY sort_order, id",
+        (plant_id,),
+    )
+    rows = [{"id": r["id"], "url": r["url"], "sort_order": r["sort_order"]} for r in cur.fetchall()]
+    con.close()
+    return rows
+
+
+def _next_sort_order(cur, plant_id: int) -> int:
+    cur.execute("SELECT COALESCE(MAX(sort_order),0)+1 FROM plant_images WHERE plant_id=?", (plant_id,))
+    return cur.fetchone()[0]
+
+
+def _sync_primary_image(cur, plant_id: int) -> None:
+    """Keep plants.image_url in sync with the first plant_images entry."""
+    cur.execute(
+        "SELECT url FROM plant_images WHERE plant_id=? ORDER BY sort_order, id LIMIT 1",
+        (plant_id,),
+    )
+    row = cur.fetchone()
+    primary = row["url"] if row else None
+    cur.execute("UPDATE plants SET image_url=? WHERE id=?", (primary, plant_id))
+
+
 def upload_plant_image(
     plant_id: int,
     data: bytes,
     content_type: str,
 ) -> dict:
+    """Add a new image to a plant's gallery."""
     ensure_upload_dirs()
     if not _plant_exists(plant_id):
         raise HTTPException(status_code=404, detail="Plant not found")
@@ -420,40 +451,63 @@ def upload_plant_image(
 
     con = _connect()
     cur = con.cursor()
-    cur.execute("SELECT image_url FROM plants WHERE id=?", (plant_id,))
-    row = cur.fetchone()
-    old_url = row["image_url"] if row else None
-    con.close()
+    sort_order = _next_sort_order(cur, plant_id)
 
-    filename = f"plant_{plant_id}{ext}"
+    # Use a unique filename based on timestamp to avoid collisions.
+    import time as _time
+    filename = f"plant_{plant_id}_{int(_time.time() * 1000)}{ext}"
     dest = PLANT_IMAGES_DIR / filename
     dest.write_bytes(data)
 
     image_url = f"/uploads/plants/{filename}"
-    con = _connect()
-    cur = con.cursor()
-    cur.execute("UPDATE plants SET image_url=? WHERE id=?", (image_url, plant_id))
+    cur.execute(
+        "INSERT INTO plant_images (plant_id, url, sort_order) VALUES (?,?,?)",
+        (plant_id, image_url, sort_order),
+    )
+    _sync_primary_image(cur, plant_id)
     con.commit()
+    new_id = cur.lastrowid
     con.close()
 
-    if old_url and old_url != image_url:
-        _remove_local_upload(old_url)
-
-    return {"plant_id": plant_id, "image_url": image_url}
+    return {"id": new_id, "plant_id": plant_id, "image_url": image_url}
 
 
-def delete_plant_image(plant_id: int) -> dict:
+def delete_plant_image_by_id(plant_id: int, image_id: int) -> dict:
     if not _plant_exists(plant_id):
         raise HTTPException(status_code=404, detail="Plant not found")
 
     con = _connect()
     cur = con.cursor()
-    cur.execute("SELECT image_url FROM plants WHERE id=?", (plant_id,))
+    cur.execute("SELECT url FROM plant_images WHERE id=? AND plant_id=?", (image_id, plant_id))
     row = cur.fetchone()
-    old_url = row["image_url"] if row else None
-    cur.execute("UPDATE plants SET image_url=NULL WHERE id=?", (plant_id,))
+    if not row:
+        con.close()
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    old_url = row["url"]
+    cur.execute("DELETE FROM plant_images WHERE id=?", (image_id,))
+    _sync_primary_image(cur, plant_id)
     con.commit()
     con.close()
 
     _remove_local_upload(old_url)
+    return {"deleted": True, "id": image_id}
+
+
+def delete_plant_image(plant_id: int) -> dict:
+    """Delete ALL images for a plant (legacy single-image endpoint)."""
+    if not _plant_exists(plant_id):
+        raise HTTPException(status_code=404, detail="Plant not found")
+
+    con = _connect()
+    cur = con.cursor()
+    cur.execute("SELECT url FROM plant_images WHERE plant_id=?", (plant_id,))
+    urls = [r["url"] for r in cur.fetchall()]
+    cur.execute("DELETE FROM plant_images WHERE plant_id=?", (plant_id,))
+    cur.execute("UPDATE plants SET image_url=NULL WHERE id=?", (plant_id,))
+    con.commit()
+    con.close()
+
+    for url in urls:
+        _remove_local_upload(url)
     return {"plant_id": plant_id, "image_url": None}

@@ -49,6 +49,8 @@ from admin import (
     rebuild_graph as admin_rebuild_graph,
     upload_plant_image as admin_upload_plant_image,
     delete_plant_image as admin_delete_plant_image,
+    list_plant_images as admin_list_plant_images,
+    delete_plant_image_by_id as admin_delete_plant_image_by_id,
 )
 
 # ---------------------------------------------------------------------------
@@ -230,6 +232,12 @@ def get_plant(plant_id: int):
     )
     related = [{"id": r["id"], "scientific_name": r["scientific_name"], "local_name": r["local_name"]} for r in cur.fetchall()]
 
+    cur.execute(
+        "SELECT url FROM plant_images WHERE plant_id=? ORDER BY sort_order, id",
+        (plant_id,),
+    )
+    images = [r["url"] for r in cur.fetchall()]
+
     con.close()
     return {
         "id": row["id"],
@@ -240,6 +248,7 @@ def get_plant(plant_id: int):
         "traditional_use": row["traditional_use"],
         "source": row["source"],
         "image_url": row["image_url"],
+        "images": images,
         "conditions": conditions,
         "compounds": compounds,
         "related_plants": related,
@@ -614,8 +623,31 @@ def admin_rebuild_graph_endpoint(_: str = Depends(require_admin)):
     return admin_rebuild_graph()
 
 
-@app.post("/api/admin/plants/{plant_id}/image")
+@app.get("/api/admin/plants/{plant_id}/images")
+def admin_list_plant_images_endpoint(plant_id: int, _: str = Depends(require_admin)):
+    return admin_list_plant_images(plant_id)
+
+
+@app.post("/api/admin/plants/{plant_id}/images")
 async def admin_upload_plant_image_endpoint(
+    plant_id: int,
+    file: UploadFile = File(...),
+    _: str = Depends(require_admin),
+):
+    data = await file.read()
+    return admin_upload_plant_image(plant_id, data, file.content_type or "")
+
+
+@app.delete("/api/admin/plants/{plant_id}/images/{image_id}")
+def admin_delete_plant_image_by_id_endpoint(
+    plant_id: int, image_id: int, _: str = Depends(require_admin)
+):
+    return admin_delete_plant_image_by_id(plant_id, image_id)
+
+
+# Legacy single-image endpoints kept for backward compat
+@app.post("/api/admin/plants/{plant_id}/image")
+async def admin_upload_plant_image_legacy(
     plant_id: int,
     file: UploadFile = File(...),
     _: str = Depends(require_admin),

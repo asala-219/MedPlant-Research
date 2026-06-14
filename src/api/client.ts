@@ -157,9 +157,16 @@ export interface Plant {
   traditional_use: string | null;
   source: string | null;
   image_url: string | null;
+  images: string[];
   conditions: string[];
   compounds: Compound[];
   related_plants?: RelatedPlant[];
+}
+
+export interface PlantImage {
+  id: number;
+  url: string;
+  sort_order: number;
 }
 
 export interface Compound {
@@ -360,15 +367,21 @@ export const api = {
   adminRebuildGraph: (token: string) =>
     post<{ nodes: number; edges: number; message: string }>("/api/admin/rebuild-graph", {}, token),
 
+  adminListPlantImages: (token: string, plantId: number) =>
+    getAuth<PlantImage[]>(`/api/admin/plants/${plantId}/images`, token),
+
   adminUploadPlantImage: (token: string, plantId: number, file: File) => {
     const fd = new FormData();
     fd.append("file", file);
-    return postForm<{ plant_id: number; image_url: string }>(
-      `/api/admin/plants/${plantId}/image`,
+    return postForm<{ id: number; plant_id: number; image_url: string }>(
+      `/api/admin/plants/${plantId}/images`,
       fd,
       token,
     );
   },
+
+  adminDeletePlantImageById: (token: string, plantId: number, imageId: number) =>
+    delAuth<{ deleted: boolean; id: number }>(`/api/admin/plants/${plantId}/images/${imageId}`, token),
 
   adminDeletePlantImage: (token: string, plantId: number) =>
     delAuth<{ plant_id: number; image_url: null }>(`/api/admin/plants/${plantId}/image`, token),
