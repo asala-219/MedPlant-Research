@@ -15,8 +15,7 @@ venv/
 node_modules/
 dist/
 
-# DB & graph (re-generated from CSV)
-backend/omani_ethno.db
+# Graph cache (re-generated from DB)
 backend/knowledge_graph.json
 
 # Uploaded plant images (keep directory via .gitkeep)

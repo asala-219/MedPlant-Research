@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router";
 import { ArrowLeft, Leaf, FlaskConical, Stethoscope, Network } from "lucide-react";
-import { api, nodePath, resolveAssetUrl, type Plant, type GraphData, type GraphNode } from "../../api/client";
+import { api, nodePath, type Plant, type GraphData, type GraphNode } from "../../api/client";
 import { KnowledgeGraphViz, GraphLegend } from "../components/KnowledgeGraphViz";
-import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { PlantImageGallery } from "../components/PlantImageGallery";
 import { useLang } from "../../i18n/LangContext";
 import { t } from "../../i18n/translations";
 
@@ -96,20 +96,12 @@ export function PlantDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Quick facts */}
         <div className="lg:col-span-1 flex flex-col gap-4">
-          {/* Plant image */}
+          {/* Plant image gallery */}
           <div className="bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-sm">
-            {resolveAssetUrl(plant.image_url) ? (
-              <ImageWithFallback
-                src={resolveAssetUrl(plant.image_url)!}
-                alt={plant.scientific_name}
-                className="w-full aspect-[4/3] object-cover"
-              />
-            ) : (
-              <div className="w-full aspect-[4/3] bg-stone-100 flex flex-col items-center justify-center gap-2 text-stone-400">
-                <Leaf className="w-10 h-10 opacity-40" />
-                <span className="text-xs">{tr.no_image}</span>
-              </div>
-            )}
+            <PlantImageGallery
+              images={plant.images?.length ? plant.images : (plant.image_url ? [plant.image_url] : [])}
+              alt={plant.scientific_name}
+            />
           </div>
 
           {/* Quick reference card */}

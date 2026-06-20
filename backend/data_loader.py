@@ -69,11 +69,14 @@ def db_is_ready() -> bool:
 
 
 def ensure_db() -> None:
-    """Build or rebuild the database when missing or empty."""
+    """Create the database from CSV on first run only. Never wipes an existing DB."""
     if db_is_ready():
+        # Apply any schema additions that may be missing (e.g. plant_images).
+        con = sqlite3.connect(DB_PATH)
+        con.executescript(SCHEMA)
+        _migrate_plant_images(con)
+        con.close()
         return
-    if DB_PATH.exists():
-        DB_PATH.unlink()
     build_db()
 
 # ---------------------------------------------------------------------------
@@ -300,19 +303,38 @@ CREATE TABLE IF NOT EXISTS plant_conditions (
     PRIMARY KEY (plant_id, condition_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_plants_family  ON plants(family);
-CREATE INDEX IF NOT EXISTS idx_plants_sci     ON plants(scientific_name);
-CREATE INDEX IF NOT EXISTS idx_compounds_name ON compounds(name);
+CREATE TABLE IF NOT EXISTS plant_images (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    plant_id   INTEGER NOT NULL REFERENCES plants(id) ON DELETE CASCADE,
+    url        TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_plants_family      ON plants(family);
+CREATE INDEX IF NOT EXISTS idx_plants_sci         ON plants(scientific_name);
+CREATE INDEX IF NOT EXISTS idx_compounds_name     ON compounds(name);
+CREATE INDEX IF NOT EXISTS idx_plant_images_plant ON plant_images(plant_id, sort_order);
 """
+
+
+def _migrate_plant_images(con: sqlite3.Connection) -> None:
+    """One-time migration: seed plant_images from plants.image_url if empty."""
+    cur = con.cursor()
+    cur.execute("SELECT COUNT(*) FROM plant_images")
+    if cur.fetchone()[0] > 0:
+        return
+    cur.execute("SELECT id, image_url FROM plants WHERE image_url IS NOT NULL")
+    for row in cur.fetchall():
+        cur.execute(
+            "INSERT OR IGNORE INTO plant_images (plant_id, url, sort_order) VALUES (?,?,0)",
+            (row[0], row[1]),
+        )
+    con.commit()
 
 
 def build_db():
     csv_path = resolve_csv_path()
     print(f"Loading ethnomedicinal data from {csv_path}")
-
-    # Remove stale DB
-    if DB_PATH.exists():
-        DB_PATH.unlink()
 
     con = sqlite3.connect(DB_PATH)
     cur = con.cursor()
