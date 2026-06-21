@@ -14,8 +14,11 @@ _root = Path(__file__).resolve().parent.parent
 load_dotenv(_root / ".env")
 load_dotenv(Path(__file__).parent / ".env")
 
+FRONTEND_DIST_DIR = _root / "dist"
+
 from fastapi import Depends, FastAPI, File, Query, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -690,6 +693,35 @@ def chat_debug_endpoint(req: ChatRequest):
 
 # Static uploads (plant images managed via admin)
 app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
+
+
+def serve_frontend(path: str = ""):
+    if path.startswith("api") or path in {"docs", "redoc", "openapi.json"}:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    if path:
+        candidate = FRONTEND_DIST_DIR / path
+        if candidate.is_file():
+            return FileResponse(candidate)
+
+    index_file = FRONTEND_DIST_DIR / "index.html"
+    if index_file.is_file():
+        return FileResponse(index_file)
+
+    raise HTTPException(
+        status_code=404,
+        detail="Frontend build not found. Run `npm run build` before starting the backend.",
+    )
+
+
+@app.get("/", include_in_schema=False)
+def serve_frontend_root():
+    return serve_frontend("")
+
+
+@app.get("/{path:path}", include_in_schema=False)
+def serve_frontend_routes(path: str):
+    return serve_frontend(path)
 
 
 # ---------------------------------------------------------------------------

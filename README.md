@@ -34,6 +34,32 @@ This starts:
 - the FastAPI backend on http://localhost:8000
 - the Vite frontend on http://localhost:5173
 
+## One-platform deploy
+
+If you want one public URL with no domain, deploy the full app to Render.
+
+Render will:
+
+- install the frontend and backend dependencies
+- build the Vite app into `dist/`
+- start the FastAPI app
+- serve the browser app and API from the same service URL
+
+### Render steps
+
+1. Create a new Web Service from this repo.
+2. Let Render use the included `render.yaml` blueprint.
+3. Add any required environment variables such as `GEMINI_API_KEY`, `GEMINI_MODEL`, and `ADMIN_PASSWORD`.
+4. Deploy and open the generated `*.onrender.com` URL.
+
+### What changed for deployment
+
+The FastAPI backend now serves the built frontend from `dist/`, so one deployment can handle:
+
+- `/` for the browser app
+- `/api/*` for the backend
+- `/uploads/*` for plant images
+
 ## Step-by-step setup
 
 ### 1. Install frontend dependencies
@@ -139,6 +165,10 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 ### Backend cannot find the CSV
 
 Make sure a CSV exists in `backend/data/`, or set `OMAN_ETHNO_CSV` to the full file path.
+
+### Render deploy fails because the frontend build is missing
+
+Render must run the build command before startup. The included `render.yaml` does this automatically.
 
 ## Useful links
 
