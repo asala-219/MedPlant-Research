@@ -265,8 +265,8 @@ export function Admin() {
   }
 
   return (
-    <main className="max-w-[1400px] mx-auto px-6 py-10 pb-24">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <main className="px-3 py-10 pb-24">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 px-3">
         <div>
           <h2 className="text-sm font-bold tracking-[0.2em] uppercase text-emerald-600 mb-1">Admin</h2>
           <h1 className="text-3xl font-serif font-bold text-stone-900">{tr.admin_title}</h1>
@@ -296,36 +296,30 @@ export function Admin() {
         </div>
       )}
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Table list */}
-        <aside className="lg:w-64 shrink-0">
-          <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-3">{tr.admin_tables}</p>
-            <ul className="space-y-1">
-              {tables.map((tb) => (
-                <li key={tb.name}>
-                  <button
-                    onClick={() => { setActiveTable(tb.name); setSkip(0); setSearch(""); }}
-                    className={`w-full text-start px-3 py-2 rounded-lg text-sm flex items-center justify-between gap-2 transition-colors ${
-                      activeTable === tb.name
-                        ? "bg-emerald-50 text-emerald-800 font-semibold"
-                        : "text-stone-700 hover:bg-stone-50"
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Database className="w-3.5 h-3.5 shrink-0" />
-                      {tb.label}
-                    </span>
-                    <span className="text-xs text-stone-400">{tb.row_count}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </aside>
+      {/* Table tabs */}
+      <div className="flex items-center gap-1 overflow-x-auto pb-1 mb-4 border-b border-stone-200">
+        <span className="text-xs font-bold uppercase tracking-wider text-stone-400 me-2 shrink-0">
+          {tr.admin_tables}
+        </span>
+        {tables.map((tb) => (
+          <button
+            key={tb.name}
+            onClick={() => { setActiveTable(tb.name); setSkip(0); setSearch(""); }}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm whitespace-nowrap transition-colors shrink-0 ${
+              activeTable === tb.name
+                ? "bg-emerald-50 text-emerald-800 font-semibold border border-emerald-200"
+                : "text-stone-600 hover:bg-stone-100"
+            }`}
+          >
+            <Database className="w-3.5 h-3.5 shrink-0" />
+            {tb.label}
+            <span className="text-xs text-stone-400 font-normal">{tb.row_count}</span>
+          </button>
+        ))}
+      </div>
 
-        {/* Data panel */}
-        <div className="flex-1 min-w-0">
+      {/* Data panel */}
+      <div>
           <div className="bg-white border border-stone-200 rounded-2xl shadow-sm overflow-hidden">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border-b border-stone-100">
               <div className="relative flex-1 max-w-sm">
@@ -456,7 +450,6 @@ export function Admin() {
               </div>
             </div>
           </div>
-        </div>
       </div>
 
       {/* Row modal */}
