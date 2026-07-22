@@ -1,5 +1,5 @@
 """
-OmaniEthnoDBKG – FastAPI backend
+OMEDB – FastAPI backend
 """
 
 import sqlite3
@@ -70,8 +70,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="OmaniEthnoDBKG API",
-    description="Oman's Ethnomedicinal Plant Knowledge Graph — REST API",
+    title="OMEDB API",
+    description="Omani Ethnomedicinal Plant Knowledge Graph — REST API",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -135,11 +135,18 @@ def list_plants(
         params.append(f"%{family.lower()}%")
 
     if search:
+        # Include a LEFT JOIN for conditions only when needed for the search term
+        joins.append(
+            "LEFT JOIN plant_conditions pc_s ON pc_s.plant_id = p.id "
+            "LEFT JOIN conditions cond_s ON cond_s.id = pc_s.condition_id"
+        )
         wheres.append(
-            "(LOWER(p.scientific_name) LIKE ? OR LOWER(p.local_name) LIKE ? OR LOWER(p.family) LIKE ?)"
+            "(LOWER(p.scientific_name) LIKE ? OR LOWER(p.local_name) LIKE ? "
+            "OR LOWER(p.family) LIKE ? OR LOWER(cond_s.name) LIKE ? "
+            "OR LOWER(COALESCE(p.part_used, '')) LIKE ?)"
         )
         s = f"%{search.lower()}%"
-        params.extend([s, s, s])
+        params.extend([s, s, s, s, s])
 
     sql = base
     if joins:

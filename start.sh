@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# OmaniEthnoDBKG — start backend + frontend
+# OMEDB — start backend + frontend
 set -e
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"

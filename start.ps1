@@ -1,4 +1,4 @@
-# OmaniEthnoDBKG — start backend + frontend (Windows)
+# OMEDB — start backend + frontend (Windows)
 $ErrorActionPreference = "Stop"
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force | Out-Null
 

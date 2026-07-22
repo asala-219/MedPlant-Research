@@ -10,7 +10,7 @@ Pipeline stages:
   3. Hybrid Ranking    — weighted scoring with diversity enforcement (MMR)
   4. Context Assembly  — structured, path-aware context with provenance
 
-Author: OmaniEthnoDBKG Research Project
+Author: OMEDB Research Project
 """
 
 from __future__ import annotations

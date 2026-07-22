@@ -8,12 +8,12 @@ export const t = {
     nav_graph: "Knowledge Graph",
     nav_chat: "Ask AI",
     nav_admin: "Admin",
-    nav_subtitle: "Oman's Ethnomedicinal Plants",
+    nav_subtitle: "Omani Ethnomedicinal Plants",
 
     // Hero
-    hero_title: "Oman's Ethnomedicinal Plant Knowledge Graph",
+    hero_title: "Omani Ethnomedicinal Plant Knowledge Graph",
     hero_desc:
-      "A digital home for Oman's healing plant tradition — combining a structured database with a relational knowledge graph to let researchers, clinicians, and the public explore 180 plants, 437 compounds, and 40 medical conditions.",
+      "A digital home for Omani healing plant tradition — combining a structured database with a relational knowledge graph to let researchers, clinicians, and the public explore 180 plants, 437 compounds, and 40 medical conditions.",
 
     // Stats
     stat_plants: "Plants",
@@ -26,7 +26,7 @@ export const t = {
     // Table
     table_title: "Plant Registry",
     table_subtitle: "Search and filter the complete ethnomedicinal plant database",
-    search_placeholder: "Search by name, local name, family…",
+    search_placeholder: "Search by name, local name, family, condition, part used…",
     filter_condition: "Filter by condition",
     filter_family: "Filter by family",
     col_family: "Family",
@@ -89,7 +89,7 @@ export const t = {
 
     // Chat
     chat_title: "Ask OmaniEthno AI",
-    chat_subtitle: "Ask questions about Oman's ethnomedicinal plants in English or Arabic",
+    chat_subtitle: "Ask questions about Omani ethnomedicinal plants in English or Arabic",
     chat_placeholder: "e.g. What plants treat diabetes in Oman?",
     send: "Send",
     chat_disclaimer: "AI answers are based on the knowledge graph and for research purposes only — not medical advice.",

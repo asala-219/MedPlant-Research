@@ -42,11 +42,11 @@ function NavInner() {
           <Link to="/" className="flex items-center gap-2.5">
             <img
               src="/logo.png"
-              alt="OmaniEthnoDBKG"
+              alt="OMEDB"
               className="w-10 h-10 object-contain"
             />
             <div className="hidden sm:block">
-              <p className="text-sm font-bold font-serif text-stone-900 leading-none">OmaniEthnoDBKG</p>
+              <p className="text-sm font-bold font-serif text-stone-900 leading-none">OMEDB</p>
               <p className="text-[10px] text-stone-400 font-medium leading-none mt-0.5">{tr.nav_subtitle}</p>
             </div>
           </Link>
@@ -133,11 +133,11 @@ function NavInner() {
         <div className="max-w-[1400px] mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center p-1">
-              <img src="/logo.png" alt="OmaniEthnoDBKG" className="w-full h-full object-contain" />
+              <img src="/logo.png" alt="OMEDB" className="w-full h-full object-contain" />
             </div>
             <div>
-              <p className="text-stone-300 font-bold font-serif text-sm">OmaniEthnoDBKG</p>
-              <p className="text-xs text-stone-500">Oman's Ethnomedicinal Plant Knowledge Graph</p>
+              <p className="text-stone-300 font-bold font-serif text-sm">OMEDB</p>
+              <p className="text-xs text-stone-500">Omani Ethnomedicinal Plant Knowledge Graph</p>
             </div>
           </div>
           <p className="text-xs text-center max-w-sm">

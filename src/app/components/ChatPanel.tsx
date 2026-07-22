@@ -131,7 +131,7 @@ export function ChatPanel({ variant = "page", initialQuestion = null }: Props) {
               <p className="text-stone-600 font-medium mb-1">
                 {lang === "ar"
                   ? "اسأل أي شيء عن النباتات الطبية العُمانية"
-                  : "Ask anything about Oman's ethnomedicinal plants"}
+                  : "Ask anything about Omani ethnomedicinal plants"}
               </p>
               <p className="text-stone-400 text-sm">
                 {lang === "ar" ? "جرّب أحد هذه الأسئلة:" : "Try one of these questions:"}
