@@ -217,7 +217,8 @@ def get_condition_subgraph(condition_id: int) -> dict:
     """Return all plants + their compounds for a given condition."""
     g = load_graph()
     cond_node_id = f"condition:{condition_id}"
-    plant_ids = g["_condition_plants"].get(condition_id, [])
+    index = g["_condition_plants"]
+    plant_ids = index.get(str(condition_id)) or index.get(condition_id) or []
 
     included: set[str] = {cond_node_id}
     for pid in plant_ids:
