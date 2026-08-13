@@ -40,7 +40,7 @@ export function Home() {
           <div className="relative max-w-3xl">
             <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-5">
               <Leaf className="w-3.5 h-3.5" />
-              OmaniEthnoDBKG
+              OMEDB
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white leading-tight mb-4">
               {tr.hero_title}
@@ -78,7 +78,7 @@ export function Home() {
       {/* Features */}
       <section id="features" className="mb-16">
         <h2 className="text-3xl font-serif font-bold text-stone-900 mb-2">Platform Features</h2>
-        <p className="text-stone-500 mb-8 max-w-2xl">Four integrated components for exploring Oman's plant medicine tradition</p>
+        <p className="text-stone-500 mb-8 max-w-2xl">Four integrated components for exploring Omani plant medicine tradition</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {features.map(({ icon, title, desc, color, to }) => (
             <Link key={title} to={to} className="group bg-white border border-stone-200 rounded-2xl p-6 hover:border-emerald-300 hover:shadow-md transition-all">

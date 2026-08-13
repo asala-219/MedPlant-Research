@@ -4,6 +4,13 @@ import type { GraphData, GraphNode } from "../../api/client";
 import { useLang } from "../../i18n/LangContext";
 import { t } from "../../i18n/translations";
 
+// Font Awesome unicode codepoints (Solid, weight 900)
+const FA_ICON: Record<string, string> = {
+  Plant:     "",  // fa-leaf
+  Family:    "",  // fa-circle-nodes
+  Condition: "",  // fa-stethoscope
+};
+
 // ---------------------------------------------------------------------------
 // Colour palette by node type
 // ---------------------------------------------------------------------------
@@ -196,11 +203,27 @@ export function KnowledgeGraphViz({ data, onNodeClick, height = 560 }: Props) {
       .style("user-select", "none")
       .style("opacity", (d) => (defaultLabel(d) ? 1 : 0));
 
+    // ── FA icons (rendered on top of circles for typed nodes) ───────────
+    const iconText = g.append("g")
+      .selectAll<SVGTextElement, SimNode>("text.fa-icon")
+      .data(nodes.filter((n) => n.type !== "Compound"))
+      .join("text")
+      .text((d) => FA_ICON[d.type] ?? "")
+      .attr("font-family", "'Font Awesome 6 Free'")
+      .attr("font-weight", 900)
+      .attr("font-size", (d) => Math.max(8, (d._r ?? 7) * 1.0))
+      .attr("text-anchor", "middle")
+      .attr("dominant-baseline", "central")
+      .attr("fill", "#fff")
+      .attr("pointer-events", "none")
+      .style("user-select", "none");
+
     // ── Hover focus: spotlight a node and its direct neighbours ─────────
     function focusNode(d: SimNode) {
       const keep = neighbors.get(d.id) ?? new Set<string>();
       const isVisible = (id: string) => id === d.id || keep.has(id);
       node.style("opacity", (n) => (isVisible(n.id) ? 1 : 0.12));
+      iconText.style("opacity", (n) => (isVisible(n.id) ? 1 : 0.12));
       link
         .style("stroke-opacity", (l) => {
           const s = (l.source as SimNode).id, tg = (l.target as SimNode).id;
@@ -214,6 +237,7 @@ export function KnowledgeGraphViz({ data, onNodeClick, height = 560 }: Props) {
     }
     function clearFocus() {
       node.style("opacity", 1);
+      iconText.style("opacity", 1);
       link
         .style("stroke-opacity", baseLinkOpacity)
         .attr("stroke-width", (l) => ((l as SimLink).type === "TREATS" ? 1.5 : 1));
@@ -264,6 +288,7 @@ export function KnowledgeGraphViz({ data, onNodeClick, height = 560 }: Props) {
 
       node.attr("cx", (d) => d.x ?? 0).attr("cy", (d) => d.y ?? 0);
       label.attr("x", (d) => d.x ?? 0).attr("y", (d) => d.y ?? 0);
+      iconText.attr("x", (d) => d.x ?? 0).attr("y", (d) => d.y ?? 0);
     });
 
     return () => {
@@ -288,19 +313,23 @@ export function GraphLegend({ compact = false }: { compact?: boolean }) {
   const { lang } = useLang();
   const tr = t[lang];
   const items = [
-    { type: "Plant",     label: tr.node_plant },
-    { type: "Condition", label: tr.node_condition },
-    { type: "Compound",  label: tr.node_compound },
-    { type: "Family",    label: tr.node_family },
+    { type: "Plant",     label: tr.node_plant,     icon: "fa-solid fa-leaf" },
+    { type: "Condition", label: tr.node_condition,  icon: "fa-solid fa-stethoscope" },
+    { type: "Compound",  label: tr.node_compound,   icon: null },
+    { type: "Family",    label: tr.node_family,     icon: "fa-solid fa-circle-nodes" },
   ];
   return (
     <div className={`flex flex-wrap items-center gap-x-4 gap-y-2 ${compact ? "text-xs" : "text-sm"}`}>
-      {items.map(({ type, label }) => (
+      {items.map(({ type, label, icon }) => (
         <div key={type} className="flex items-center gap-1.5">
-          <span
-            className="inline-block rounded-full"
-            style={{ width: 11, height: 11, background: COLOR[type] }}
-          />
+          {icon ? (
+            <i className={icon} style={{ color: COLOR[type], fontSize: compact ? 11 : 13 }} />
+          ) : (
+            <span
+              className="inline-block rounded-full"
+              style={{ width: 11, height: 11, background: COLOR[type] }}
+            />
+          )}
           <span className="text-stone-600">{label}</span>
         </div>
       ))}

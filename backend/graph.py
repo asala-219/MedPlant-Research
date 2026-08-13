@@ -158,8 +158,11 @@ def build_graph() -> dict:
         "_compound_plants":  {k: v for k, v in comp_plants.items()},
     }
 
-    GRAPH_PATH.write_text(json.dumps(graph, ensure_ascii=False, indent=2))
-    print(f"Graph: {len(nodes)} nodes, {len(edges)} edges → {GRAPH_PATH}")
+    # Write to a temp file then rename so a mid-write crash never leaves a corrupt file.
+    tmp = GRAPH_PATH.with_suffix(".tmp")
+    tmp.write_text(json.dumps(graph, ensure_ascii=False, indent=2), encoding="utf-8")
+    tmp.replace(GRAPH_PATH)
+    print(f"Graph: {len(nodes)} nodes, {len(edges)} edges -> {GRAPH_PATH}")
     return graph
 
 
@@ -170,7 +173,15 @@ def build_graph() -> dict:
 def load_graph() -> dict:
     if not GRAPH_PATH.exists():
         return build_graph()
-    return json.loads(GRAPH_PATH.read_text())
+    try:
+        text = GRAPH_PATH.read_text(encoding="utf-8")
+        if not text.strip():
+            raise ValueError("empty")
+        return json.loads(text)
+    except (json.JSONDecodeError, ValueError):
+        # File is corrupt or empty — rebuild from DB
+        GRAPH_PATH.unlink(missing_ok=True)
+        return build_graph()
 
 
 def get_plant_neighborhood(plant_id: int, depth: int = 2) -> dict:
@@ -206,7 +217,8 @@ def get_condition_subgraph(condition_id: int) -> dict:
     """Return all plants + their compounds for a given condition."""
     g = load_graph()
     cond_node_id = f"condition:{condition_id}"
-    plant_ids = g["_condition_plants"].get(condition_id, [])
+    index = g["_condition_plants"]
+    plant_ids = index.get(str(condition_id)) or index.get(condition_id) or []
 
     included: set[str] = {cond_node_id}
     for pid in plant_ids:
@@ -216,6 +228,51 @@ def get_condition_subgraph(condition_id: int) -> dict:
     for edge in g["edges"]:
         if edge["source"] in included and edge["type"] == "CONTAINS":
             included.add(edge["target"])
+
+    node_map = {n["id"]: n for n in g["nodes"]}
+    sub_nodes = [node_map[v] for v in included if v in node_map]
+    sub_edges = [
+        e for e in g["edges"]
+        if e["source"] in included and e["target"] in included
+    ]
+    return {"nodes": sub_nodes, "edges": sub_edges}
+
+
+def get_compound_subgraph(compound_id: int) -> dict:
+    """Return the compound + every plant that contains it (and their families)."""
+    g = load_graph()
+    comp_node_id = f"compound:{compound_id}"
+    index = g.get("_compound_plants", {})
+    # JSON round-trips dict keys to strings, so look up by both.
+    plant_ids = index.get(str(compound_id)) or index.get(compound_id) or []
+
+    included: set[str] = {comp_node_id}
+    for pid in plant_ids:
+        included.add(f"plant:{pid}")
+
+    # pull in the families of those plants
+    for edge in g["edges"]:
+        if edge["source"] in included and edge["type"] == "BELONGS_TO":
+            included.add(edge["target"])
+
+    node_map = {n["id"]: n for n in g["nodes"]}
+    sub_nodes = [node_map[v] for v in included if v in node_map]
+    sub_edges = [
+        e for e in g["edges"]
+        if e["source"] in included and e["target"] in included
+    ]
+    return {"nodes": sub_nodes, "edges": sub_edges}
+
+
+def get_family_subgraph(family_name: str) -> dict:
+    """Return the family node + every plant that belongs to it."""
+    g = load_graph()
+    fid = f"family:{family_name.replace(' ', '_')}"
+
+    included: set[str] = {fid}
+    for edge in g["edges"]:
+        if edge["type"] == "BELONGS_TO" and edge["target"] == fid:
+            included.add(edge["source"])
 
     node_map = {n["id"]: n for n in g["nodes"]}
     sub_nodes = [node_map[v] for v in included if v in node_map]

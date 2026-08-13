@@ -10,12 +10,74 @@ Schema:
 """
 
 import csv
+import os
 import re
 import sqlite3
 from pathlib import Path
 
-CSV_PATH = Path.home() / "Downloads" / "Oman_Ethnomedicinal_Merged.csv"
-DB_PATH = Path(__file__).parent / "omani_ethno.db"
+BACKEND_DIR = Path(__file__).parent
+DATA_DIR = BACKEND_DIR / "data"
+DB_PATH = BACKEND_DIR / "omani_ethno.db"
+
+DEFAULT_CSV_CANDIDATES = [
+    DATA_DIR / "Oman_Ethnomedicinal_Merged.csv",
+    BACKEND_DIR / "Oman_Ethnomedicinal_Merged.csv",
+    Path.home() / "Downloads" / "Oman_Ethnomedicinal_Merged.csv",
+    DATA_DIR / "Oman_Ethnomedicinal_Merged.sample.csv",
+]
+
+
+def resolve_csv_path() -> Path:
+    """Pick the first existing CSV from env or known locations."""
+    env_path = os.getenv("OMAN_ETHNO_CSV")
+    if env_path:
+        p = Path(env_path).expanduser()
+        if p.is_file():
+            return p
+        raise FileNotFoundError(
+            f"OMAN_ETHNO_CSV is set but file not found: {p}"
+        )
+    for candidate in DEFAULT_CSV_CANDIDATES:
+        if candidate.is_file():
+            return candidate
+    raise FileNotFoundError(
+        "Oman ethnomedicinal CSV not found. Place "
+        "Oman_Ethnomedicinal_Merged.csv in backend/data/ or ~/Downloads, "
+        "or set OMAN_ETHNO_CSV to its path. "
+        "Download from https://omanmedicinalplant.om/"
+    )
+
+
+def db_is_ready() -> bool:
+    """True when the SQLite schema exists and has plant rows."""
+    if not DB_PATH.exists() or DB_PATH.stat().st_size == 0:
+        return False
+    try:
+        con = sqlite3.connect(DB_PATH)
+        cur = con.cursor()
+        cur.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='plants'"
+        )
+        if not cur.fetchone():
+            return False
+        cur.execute("SELECT COUNT(*) FROM plants")
+        count = cur.fetchone()[0]
+        con.close()
+        return count > 0
+    except sqlite3.Error:
+        return False
+
+
+def ensure_db() -> None:
+    """Create the database from CSV on first run only. Never wipes an existing DB."""
+    if db_is_ready():
+        # Apply any schema additions that may be missing (e.g. plant_images).
+        con = sqlite3.connect(DB_PATH)
+        con.executescript(SCHEMA)
+        _migrate_plant_images(con)
+        con.close()
+        return
+    build_db()
 
 # ---------------------------------------------------------------------------
 # Disease/condition keyword extraction
@@ -241,22 +303,44 @@ CREATE TABLE IF NOT EXISTS plant_conditions (
     PRIMARY KEY (plant_id, condition_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_plants_family  ON plants(family);
-CREATE INDEX IF NOT EXISTS idx_plants_sci     ON plants(scientific_name);
-CREATE INDEX IF NOT EXISTS idx_compounds_name ON compounds(name);
+CREATE TABLE IF NOT EXISTS plant_images (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    plant_id   INTEGER NOT NULL REFERENCES plants(id) ON DELETE CASCADE,
+    url        TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_plants_family      ON plants(family);
+CREATE INDEX IF NOT EXISTS idx_plants_sci         ON plants(scientific_name);
+CREATE INDEX IF NOT EXISTS idx_compounds_name     ON compounds(name);
+CREATE INDEX IF NOT EXISTS idx_plant_images_plant ON plant_images(plant_id, sort_order);
 """
 
 
+def _migrate_plant_images(con: sqlite3.Connection) -> None:
+    """One-time migration: seed plant_images from plants.image_url if empty."""
+    cur = con.cursor()
+    cur.execute("SELECT COUNT(*) FROM plant_images")
+    if cur.fetchone()[0] > 0:
+        return
+    cur.execute("SELECT id, image_url FROM plants WHERE image_url IS NOT NULL")
+    for row in cur.fetchall():
+        cur.execute(
+            "INSERT OR IGNORE INTO plant_images (plant_id, url, sort_order) VALUES (?,?,0)",
+            (row[0], row[1]),
+        )
+    con.commit()
+
+
 def build_db():
-    # Remove stale DB
-    if DB_PATH.exists():
-        DB_PATH.unlink()
+    csv_path = resolve_csv_path()
+    print(f"Loading ethnomedicinal data from {csv_path}")
 
     con = sqlite3.connect(DB_PATH)
     cur = con.cursor()
     cur.executescript(SCHEMA)
 
-    with open(CSV_PATH, encoding="utf-8-sig") as f:
+    with open(csv_path, encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
         rows = list(reader)
 

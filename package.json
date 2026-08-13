@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite"
+    "dev": "vite",
+    "dev:backend": "cd backend && .venv\\Scripts\\python.exe -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload",
+    "setup:backend": "cd backend && python -m venv .venv && .venv\\Scripts\\python.exe -m pip install -r requirements.txt"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
@@ -69,9 +71,12 @@
     "vaul": "1.1.2"
   },
   "devDependencies": {
+    "@angular/cli": "^21.2.13",
     "@tailwindcss/vite": "4.1.12",
+    "@types/node": "^25.9.2",
     "@vitejs/plugin-react": "4.7.0",
     "tailwindcss": "4.1.12",
+    "typescript": "^6.0.3",
     "vite": "6.3.5"
   },
   "peerDependencies": {

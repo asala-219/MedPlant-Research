@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Search } from "lucide-react";
-import { api, type GraphData, type GraphNode, type Condition } from "../../api/client";
+import { api, nodePath, type GraphData, type GraphNode, type Condition } from "../../api/client";
 import { KnowledgeGraphViz, GraphLegend } from "../components/KnowledgeGraphViz";
 import { useLang } from "../../i18n/LangContext";
 import { t } from "../../i18n/translations";
@@ -11,6 +11,7 @@ type ViewMode = "full" | "plants_conditions" | "plants_compounds" | "search";
 export function KnowledgeGraph() {
   const { lang } = useLang();
   const tr = t[lang];
+  const navigate = useNavigate();
 
   const [graph, setGraph] = useState<GraphData>({ nodes: [], edges: [] });
   const [loading, setLoading] = useState(true);
@@ -70,15 +71,12 @@ export function KnowledgeGraph() {
 
   function handleNodeClick(node: GraphNode) {
     setSelectedNode(node);
-    if (node.type === "Plant" && node.db_id) {
-      setLoading(true);
-      api.plantGraph(node.db_id, 2)
-        .then(setGraph)
-        .catch(console.error)
-        .finally(() => setLoading(false));
-    }
-    if (node.type === "Condition" && node.db_id) {
-      handleConditionClick(node.db_id);
+    // IMPPAT-style: clicking a node opens its dedicated detail page showing
+    // everything we hold about that entity. Falls back to in-graph focus when
+    // the node has no resolvable detail route.
+    const path = nodePath(node);
+    if (path) {
+      navigate(path);
     }
   }
 
