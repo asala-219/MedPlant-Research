@@ -52,6 +52,13 @@ export function KnowledgeGraphViz({ data, onNodeClick, height = 560 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const { lang } = useLang();
   const tr = t[lang];
+  const nodeTypeLabel = (type: string) => {
+    if (type === "Plant") return tr.node_plant;
+    if (type === "Condition") return tr.node_condition;
+    if (type === "Compound") return tr.node_compound;
+    if (type === "Family") return tr.node_family;
+    return type;
+  };
 
   useEffect(() => {
     if (!svgRef.current || !data.nodes.length) return;
@@ -266,7 +273,7 @@ export function KnowledgeGraphViz({ data, onNodeClick, height = 560 }: Props) {
           .html(
             `<strong>${d.label}</strong>` +
             (d.local_name ? `<br/><em>${d.local_name}</em>` : "") +
-            `<br/><span style="opacity:.7">${d.type} · ${d._deg ?? 0} link${(d._deg ?? 0) === 1 ? "" : "s"}</span>`
+            `<br/><span style="opacity:.7">${nodeTypeLabel(d.type)} · ${d._deg ?? 0} ${(d._deg ?? 0) === 1 ? tr.graph_links_singular : tr.graph_links_plural}</span>`
           );
       })
       .on("mousemove", (event) => {
@@ -337,15 +344,15 @@ export function GraphLegend({ compact = false }: { compact?: boolean }) {
         <>
           <div className="flex items-center gap-1.5 ms-2">
             <span className="inline-block h-0.5 w-6 bg-red-400" />
-            <span className="text-stone-500">TREATS</span>
+            <span className="text-stone-500">{tr.graph_edge_treats}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="inline-block h-0.5 w-6 bg-blue-400" />
-            <span className="text-stone-500">CONTAINS</span>
+            <span className="text-stone-500">{tr.graph_edge_contains}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="inline-block h-0.5 w-6 bg-amber-400" />
-            <span className="text-stone-500">BELONGS_TO</span>
+            <span className="text-stone-500">{tr.graph_edge_belongs_to}</span>
           </div>
         </>
       )}

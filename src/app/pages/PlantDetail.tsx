@@ -57,7 +57,7 @@ export function PlantDetail() {
     return (
       <main className="max-w-5xl mx-auto px-6 py-24 text-center flex flex-col items-center gap-6">
         <Leaf className="w-12 h-12 text-stone-200" />
-        <p className="text-stone-500">{error || "Plant not found."}</p>
+        <p className="text-stone-500">{error || tr.plant_not_found}</p>
         <Link to="/" className="text-emerald-600 font-semibold hover:underline">{tr.back}</Link>
       </main>
     );
@@ -106,7 +106,7 @@ export function PlantDetail() {
 
           {/* Quick reference card */}
           <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-sm">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-4">Quick Reference</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-4">{tr.plant_quick_reference}</h3>
             <dl className="space-y-3 text-sm">
               {[
                 { label: tr.family, value: plant.family },
@@ -219,16 +219,16 @@ export function PlantDetail() {
                   <Network className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-serif font-bold text-stone-900">Relationship Graph</h2>
+                  <h2 className="text-xl font-serif font-bold text-stone-900">{tr.relationship_graph}</h2>
                   <p className="text-xs text-stone-400">
-                    How <span className="italic">{plant.scientific_name}</span> connects to its conditions, compounds &amp; family
+                    <span className="italic">{plant.scientific_name}</span> — {tr.plant_relationship_subtitle}
                   </p>
                 </div>
               </div>
               <KnowledgeGraphViz data={graph} height={360} onNodeClick={handleNodeClick} />
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                 <GraphLegend compact />
-                <p className="text-xs text-stone-400">Click a node to open its page · hover to focus links · scroll to zoom</p>
+                <p className="text-xs text-stone-400">{tr.graph_tip}</p>
               </div>
             </div>
           )}
