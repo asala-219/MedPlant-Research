@@ -268,7 +268,7 @@ export function Admin() {
     <main className="px-3 py-10 pb-24">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 px-3">
         <div>
-          <h2 className="text-sm font-bold tracking-[0.2em] uppercase text-emerald-600 mb-1">Admin</h2>
+          <h2 className="text-sm font-bold tracking-[0.2em] uppercase text-emerald-600 mb-1">{tr.admin_badge}</h2>
           <h1 className="text-3xl font-serif font-bold text-stone-900">{tr.admin_title}</h1>
           <p className="text-stone-500 mt-1 text-sm">{tr.admin_subtitle}</p>
         </div>
@@ -365,7 +365,7 @@ export function Admin() {
                     {columns.map((c) => (
                       <th key={c.name} className="px-4 py-2.5 font-semibold text-stone-600 whitespace-nowrap">
                         {c.name}
-                        {c.pk && <span className="ms-1 text-[10px] text-emerald-600">PK</span>}
+                        {c.pk && <span className="ms-1 text-[10px] text-emerald-600">{tr.admin_pk}</span>}
                       </th>
                     ))}
                     <th className="px-4 py-2.5 w-24">{tr.admin_actions}</th>
@@ -515,7 +515,7 @@ export function Admin() {
                 <input
                   value={colName}
                   onChange={(e) => setColName(e.target.value)}
-                  placeholder="e.g. notes"
+                  placeholder={tr.admin_column_name_example}
                   className="mt-1 w-full px-3 py-2 rounded-lg border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
                 />
               </label>

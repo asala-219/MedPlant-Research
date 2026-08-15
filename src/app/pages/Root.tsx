@@ -82,7 +82,7 @@ function NavInner() {
             <button
               onClick={toggle}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-stone-200 text-sm font-medium text-stone-600 hover:border-emerald-300 hover:text-emerald-700 transition-colors"
-              title="Toggle language / تغيير اللغة"
+              title={tr.toggle_language_title}
             >
               <Languages className="w-4 h-4" />
               {lang === "en" ? "عربي" : "EN"}
@@ -95,7 +95,7 @@ function NavInner() {
               rel="noopener noreferrer"
               className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg bg-stone-900 text-white text-sm font-medium hover:bg-emerald-800 transition-colors"
             >
-              API Docs
+              {tr.api_docs}
             </a>
           </div>
         </div>
@@ -137,11 +137,11 @@ function NavInner() {
             </div>
             <div>
               <p className="text-stone-300 font-bold font-serif text-sm">OMEDB</p>
-              <p className="text-xs text-stone-500">Omani Ethnomedicinal Plant Knowledge Graph</p>
+              <p className="text-xs text-stone-500">{tr.footer_subtitle}</p>
             </div>
           </div>
           <p className="text-xs text-center max-w-sm">
-            Data for research and educational purposes only. Consult a medical professional before using any ethnomedicinal remedies.
+            {tr.footer_disclaimer}
           </p>
           <p className="text-xs opacity-50">© 2026 OmaniEthno Project</p>
         </div>
