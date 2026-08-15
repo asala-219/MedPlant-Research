@@ -27,6 +27,7 @@ export function KnowledgeGraph() {
   }, []);
 
   useEffect(() => {
+    if (mode === "search") return;
     setLoading(true);
     let req: Promise<GraphData>;
 
