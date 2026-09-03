@@ -117,7 +117,17 @@ export function PlantDetail() {
                 value ? (
                   <div key={label} className={label === tr.source ? "flex min-w-0 flex-col gap-1" : "flex min-w-0 justify-between gap-2"}>
                     <dt className="text-stone-500">{label}</dt>
-                    <dd className="min-w-0 break-words font-semibold leading-relaxed text-stone-800 text-end">{value}</dd>
+                    <dd className="min-w-0 break-words font-semibold leading-relaxed text-stone-800 text-end">
+                      {label === tr.source ? (
+                        <ol className="space-y-1 text-justify [text-justify:inter-word]">
+                          {value.split(/\s*;\s*/).map((source, sourceIndex) => (
+                            <li key={`${source}-${sourceIndex}`}>
+                              <span className="text-emerald-600">{sourceIndex + 1}-</span> {source}
+                            </li>
+                          ))}
+                        </ol>
+                      ) : value}
+                    </dd>
                   </div>
                 ) : null
               )}
