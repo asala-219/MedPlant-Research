@@ -1,6 +1,6 @@
 
 
-# OMEDB
+# MedPlant
 
 A full-stack plant knowledge app with a Vite frontend and a FastAPI backend.
 

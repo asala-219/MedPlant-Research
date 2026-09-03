@@ -39,16 +39,16 @@ function NavInner() {
       <header className="w-full bg-white/95 backdrop-blur-sm border-b border-stone-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5">
+          <Link to="/" className="flex items-center gap-3 shrink-0">
             <img
               src="/logo.png"
-              alt="OMEDB"
-              className="w-10 h-10 object-contain"
+              alt="MedPlant"
+              className="h-10 w-auto object-contain"
             />
-            <div className="hidden sm:block">
-              <p className="text-sm font-bold font-serif text-stone-900 leading-none">OMEDB</p>
-              <p className="text-[10px] text-stone-400 font-medium leading-none mt-0.5">{tr.nav_subtitle}</p>
-            </div>
+            <span className="hidden lg:block h-8 w-px bg-stone-200" />
+            <p className="hidden lg:block text-[11px] text-stone-400 font-medium leading-tight max-w-[8rem]">
+              {tr.nav_subtitle}
+            </p>
           </Link>
 
           {/* Nav */}
@@ -132,13 +132,10 @@ function NavInner() {
       <footer className="bg-stone-900 text-stone-400 py-12 border-t border-stone-800">
         <div className="max-w-[1400px] mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center p-1">
-              <img src="/logo.png" alt="OMEDB" className="w-full h-full object-contain" />
+            <div className="rounded-lg bg-white px-3 py-2 flex items-center justify-center">
+              <img src="/logo.png" alt="MedPlant" className="h-8 w-auto object-contain" />
             </div>
-            <div>
-              <p className="text-stone-300 font-bold font-serif text-sm">OMEDB</p>
-              <p className="text-xs text-stone-500">{tr.footer_subtitle}</p>
-            </div>
+            <p className="text-xs text-stone-500 max-w-[10rem]">{tr.footer_subtitle}</p>
           </div>
           <p className="text-xs text-center max-w-sm">
             {tr.footer_disclaimer}
