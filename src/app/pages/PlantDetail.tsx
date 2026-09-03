@@ -115,9 +115,9 @@ export function PlantDetail() {
                 { label: tr.source, value: plant.source },
               ].map(({ label, value }) =>
                 value ? (
-                  <div key={label} className="flex justify-between gap-2">
+                  <div key={label} className={label === tr.source ? "flex min-w-0 flex-col gap-1" : "flex min-w-0 justify-between gap-2"}>
                     <dt className="text-stone-500">{label}</dt>
-                    <dd className="font-semibold text-stone-800 text-end">{value}</dd>
+                    <dd className="min-w-0 break-words font-semibold leading-relaxed text-stone-800 text-end">{value}</dd>
                   </div>
                 ) : null
               )}
