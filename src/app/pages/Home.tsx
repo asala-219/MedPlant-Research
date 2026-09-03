@@ -40,7 +40,7 @@ export function Home() {
           <div className="relative max-w-3xl">
             <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-5">
               <Leaf className="w-3.5 h-3.5" />
-              OMEDB
+              MedPlant
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white leading-tight mb-4">
               {tr.hero_title}
@@ -98,7 +98,9 @@ export function Home() {
             <div className="space-y-3">
               {stats.top_conditions.map((c) => (
                 <div key={c.name} className="flex items-center gap-3">
-                  <span className="text-sm text-stone-700 w-44 shrink-0 truncate">{c.name}</span>
+                  <span className="text-sm text-stone-700 w-44 shrink-0 truncate">
+                    {lang === "ar" ? c.name_ar : c.name}
+                  </span>
                   <div className="flex-1 bg-stone-100 rounded-full h-2.5 overflow-hidden">
                     <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(c.count / stats.top_conditions[0].count) * 100}%` }} />
                   </div>

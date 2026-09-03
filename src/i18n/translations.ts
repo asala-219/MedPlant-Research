@@ -8,10 +8,10 @@ export const t = {
     nav_graph: "Knowledge Graph",
     nav_chat: "Ask AI",
     nav_admin: "Admin",
-    nav_subtitle: "Omani Ethnomedicinal Plants",
+    nav_subtitle: "Omani Ethnomedicinal Plants Database",
 
     // Hero
-    hero_title: "Omani Ethnomedicinal Plant Knowledge Graph",
+    hero_title: "Omani Ethnomedicinal Plants Database",
     hero_desc:
       "A digital home for Omani healing plant tradition — combining a structured database with a relational knowledge graph to let researchers, clinicians, and the public explore 180 plants, 437 compounds, and 40 medical conditions.",
 
@@ -37,6 +37,8 @@ export const t = {
     col_part: "Part Used",
     col_use: "Traditional Use",
     col_compounds: "Compounds",
+    compounds_short: "cpd",
+    compounds_short_plural: "cpds",
     col_conditions: "Conditions",
     col_source: "Source",
     view_profile: "View Profile",
@@ -175,7 +177,7 @@ export const t = {
     // Root layout
     toggle_language_title: "Toggle language / تغيير اللغة",
     api_docs: "API Docs",
-    footer_subtitle: "Omani Ethnomedicinal Plant Knowledge Graph",
+    footer_subtitle: "Omani Ethnomedicinal Plants Database",
     footer_disclaimer:
       "Data for research and educational purposes only. Consult a medical professional before using any ethnomedicinal remedies.",
 
@@ -221,6 +223,8 @@ export const t = {
     col_part: "الجزء المستخدم",
     col_use: "الاستخدام التقليدي",
     col_compounds: "المركبات",
+    compounds_short: "مركب",
+    compounds_short_plural: "مركبات",
     col_conditions: "الحالات",
     col_source: "المصدر",
     view_profile: "عرض الملف",

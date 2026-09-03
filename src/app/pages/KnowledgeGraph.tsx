@@ -5,6 +5,7 @@ import { api, nodePath, type GraphData, type GraphNode, type Condition } from ".
 import { KnowledgeGraphViz, GraphLegend } from "../components/KnowledgeGraphViz";
 import { useLang } from "../../i18n/LangContext";
 import { t } from "../../i18n/translations";
+import { localName, nodeLabel } from "../../i18n/dataset";
 
 type ViewMode = "full" | "plants_conditions" | "plants_compounds" | "search";
 
@@ -181,7 +182,7 @@ export function KnowledgeGraph() {
                     onClick={() => handleConditionClick(c.id)}
                     className="w-full text-start text-sm text-stone-700 hover:text-emerald-700 py-1 px-2 rounded-lg hover:bg-emerald-50 transition-colors flex justify-between items-center"
                   >
-                    <span>{c.name}</span>
+                    <span>{lang === "ar" ? c.name_ar : c.name}</span>
                     <span className="text-xs text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded-full">{c.plant_count}</span>
                   </button>
                 </li>
@@ -193,9 +194,9 @@ export function KnowledgeGraph() {
           {selectedNode && (
             <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 shadow-sm">
               <p className="text-xs font-bold uppercase tracking-wider text-emerald-600 mb-2">{tr.graph_selected_node_label}</p>
-              <p className="font-semibold text-stone-900 text-sm">{selectedNode.label}</p>
+              <p className="font-semibold text-stone-900 text-sm">{nodeLabel(lang, selectedNode)}</p>
               {selectedNode.local_name && (
-                <p className="text-stone-500 text-xs mt-1">{selectedNode.local_name}</p>
+                <p className="text-stone-500 text-xs mt-1">{localName(lang, selectedNode)}</p>
               )}
               <span className="inline-block mt-2 text-xs bg-white border border-emerald-200 text-emerald-700 px-2 py-0.5 rounded-full">
                 {nodeTypeLabel(selectedNode.type)}

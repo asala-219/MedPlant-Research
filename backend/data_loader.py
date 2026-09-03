@@ -15,6 +15,8 @@ import re
 import sqlite3
 from pathlib import Path
 
+from translations_ar import apply_arabic_translations
+
 BACKEND_DIR = Path(__file__).parent
 DATA_DIR = BACKEND_DIR / "data"
 DB_PATH = BACKEND_DIR / "omani_ethno.db"
@@ -75,6 +77,7 @@ def ensure_db() -> None:
         con = sqlite3.connect(DB_PATH)
         con.executescript(SCHEMA)
         _migrate_plant_images(con)
+        apply_arabic_translations(con)
         con.close()
         return
     build_db()
@@ -276,7 +279,11 @@ CREATE TABLE IF NOT EXISTS plants (
     part_used   TEXT,
     traditional_use TEXT,
     source      TEXT,
-    image_url   TEXT
+    image_url   TEXT,
+    family_ar          TEXT,
+    local_name_ar      TEXT,
+    part_used_ar       TEXT,
+    traditional_use_ar TEXT
 );
 
 CREATE TABLE IF NOT EXISTS compounds (
@@ -294,7 +301,8 @@ CREATE TABLE IF NOT EXISTS plant_compounds (
 
 CREATE TABLE IF NOT EXISTS conditions (
     id   INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT UNIQUE NOT NULL
+    name TEXT UNIQUE NOT NULL,
+    name_ar TEXT
 );
 
 CREATE TABLE IF NOT EXISTS plant_conditions (
@@ -437,12 +445,14 @@ def build_db():
             )
 
     con.commit()
+    ar_counts = apply_arabic_translations(con)
     con.close()
 
     print(f"DB built at {DB_PATH}")
     print(f"  Plants:    {len(plant_id_map)}")
     print(f"  Compounds: {len(compound_id_map)}")
     print(f"  Conditions: {len(condition_id_map)}")
+    print(f"  Arabic:    {ar_counts['plants']} plants, {ar_counts['conditions']} conditions")
 
 
 if __name__ == "__main__":

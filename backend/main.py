@@ -1,5 +1,5 @@
 """
-OMEDB – FastAPI backend
+MedPlant – FastAPI backend
 """
 
 import sqlite3
@@ -70,8 +70,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="OMEDB API",
-    description="Omani Ethnomedicinal Plant Knowledge Graph — REST API",
+    title="MedPlant API",
+    description="Omani Ethnomedicinal Plant Database — REST API",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -109,7 +109,8 @@ def list_plants(
 
     base = """
         SELECT DISTINCT p.id, p.family, p.scientific_name, p.local_name,
-               p.part_used, p.traditional_use, p.source, p.image_url
+               p.part_used, p.traditional_use, p.source, p.image_url,
+               p.family_ar, p.local_name_ar, p.part_used_ar, p.traditional_use_ar
         FROM plants p
     """
     joins, wheres, params = [], [], []
@@ -119,8 +120,8 @@ def list_plants(
             "JOIN plant_conditions pc_f ON pc_f.plant_id = p.id "
             "JOIN conditions cond_f ON cond_f.id = pc_f.condition_id"
         )
-        wheres.append("LOWER(cond_f.name) LIKE ?")
-        params.append(f"%{condition.lower()}%")
+        wheres.append("(LOWER(cond_f.name) LIKE ? OR cond_f.name_ar LIKE ?)")
+        params.extend([f"%{condition.lower()}%", f"%{condition}%"])
 
     if compound:
         joins.append(
@@ -131,8 +132,8 @@ def list_plants(
         params.append(f"%{compound.lower()}%")
 
     if family:
-        wheres.append("LOWER(p.family) LIKE ?")
-        params.append(f"%{family.lower()}%")
+        wheres.append("(LOWER(p.family) LIKE ? OR p.family_ar LIKE ?)")
+        params.extend([f"%{family.lower()}%", f"%{family}%"])
 
     if search:
         # Include a LEFT JOIN for conditions only when needed for the search term
@@ -140,13 +141,18 @@ def list_plants(
             "LEFT JOIN plant_conditions pc_s ON pc_s.plant_id = p.id "
             "LEFT JOIN conditions cond_s ON cond_s.id = pc_s.condition_id"
         )
+        # Arabic has no case folding, so the Arabic columns are matched raw.
         wheres.append(
             "(LOWER(p.scientific_name) LIKE ? OR LOWER(p.local_name) LIKE ? "
             "OR LOWER(p.family) LIKE ? OR LOWER(cond_s.name) LIKE ? "
-            "OR LOWER(COALESCE(p.part_used, '')) LIKE ?)"
+            "OR LOWER(COALESCE(p.part_used, '')) LIKE ? "
+            "OR COALESCE(p.local_name_ar, '') LIKE ? OR COALESCE(p.family_ar, '') LIKE ? "
+            "OR COALESCE(cond_s.name_ar, '') LIKE ? OR COALESCE(p.part_used_ar, '') LIKE ? "
+            "OR COALESCE(p.traditional_use_ar, '') LIKE ?)"
         )
         s = f"%{search.lower()}%"
-        params.extend([s, s, s, s, s])
+        s_ar = f"%{search}%"
+        params.extend([s, s, s, s, s, s_ar, s_ar, s_ar, s_ar, s_ar])
 
     sql = base
     if joins:
@@ -164,11 +170,13 @@ def list_plants(
         pid = r["id"]
 
         cur.execute(
-            "SELECT c.name FROM conditions c "
+            "SELECT c.name, c.name_ar FROM conditions c "
             "JOIN plant_conditions pc ON pc.condition_id=c.id WHERE pc.plant_id=?",
             (pid,),
         )
-        conditions = [x["name"] for x in cur.fetchall()]
+        cond_rows = cur.fetchall()
+        conditions = [x["name"] for x in cond_rows]
+        conditions_ar = [x["name_ar"] or x["name"] for x in cond_rows]
 
         cur.execute(
             "SELECT comp.name, comp.imppat_id FROM compounds comp "
@@ -188,6 +196,11 @@ def list_plants(
             "image_url": r["image_url"],
             "conditions": conditions,
             "compounds": compounds,
+            "family_ar": r["family_ar"],
+            "local_name_ar": r["local_name_ar"],
+            "part_used_ar": r["part_used_ar"],
+            "traditional_use_ar": r["traditional_use_ar"],
+            "conditions_ar": conditions_ar,
         })
 
     # total count
@@ -209,7 +222,8 @@ def get_plant(plant_id: int):
     cur = con.cursor()
 
     cur.execute(
-        "SELECT id, family, scientific_name, local_name, part_used, traditional_use, source, image_url "
+        "SELECT id, family, scientific_name, local_name, part_used, traditional_use, source, image_url, "
+        "family_ar, local_name_ar, part_used_ar, traditional_use_ar "
         "FROM plants WHERE id=?",
         (plant_id,),
     )
@@ -218,11 +232,13 @@ def get_plant(plant_id: int):
         raise HTTPException(status_code=404, detail="Plant not found")
 
     cur.execute(
-        "SELECT c.name FROM conditions c "
+        "SELECT c.id, c.name, c.name_ar FROM conditions c "
         "JOIN plant_conditions pc ON pc.condition_id=c.id WHERE pc.plant_id=?",
         (plant_id,),
     )
-    conditions = [x["name"] for x in cur.fetchall()]
+    cond_rows = cur.fetchall()
+    conditions = [x["name"] for x in cond_rows]
+    conditions_ar = [x["name_ar"] or x["name"] for x in cond_rows]
 
     cur.execute(
         "SELECT comp.name, comp.imppat_id FROM compounds comp "
@@ -233,14 +249,22 @@ def get_plant(plant_id: int):
 
     # related plants (share condition)
     cur.execute(
-        "SELECT DISTINCT p2.id, p2.scientific_name, p2.local_name "
+        "SELECT DISTINCT p2.id, p2.scientific_name, p2.local_name, p2.local_name_ar "
         "FROM plants p2 "
         "JOIN plant_conditions pc2 ON pc2.plant_id=p2.id "
         "WHERE pc2.condition_id IN (SELECT condition_id FROM plant_conditions WHERE plant_id=?) "
         "AND p2.id != ? LIMIT 8",
         (plant_id, plant_id),
     )
-    related = [{"id": r["id"], "scientific_name": r["scientific_name"], "local_name": r["local_name"]} for r in cur.fetchall()]
+    related = [
+        {
+            "id": r["id"],
+            "scientific_name": r["scientific_name"],
+            "local_name": r["local_name"],
+            "local_name_ar": r["local_name_ar"],
+        }
+        for r in cur.fetchall()
+    ]
 
     cur.execute(
         "SELECT url FROM plant_images WHERE plant_id=? ORDER BY sort_order, id",
@@ -262,6 +286,11 @@ def get_plant(plant_id: int):
         "conditions": conditions,
         "compounds": compounds,
         "related_plants": related,
+        "family_ar": row["family_ar"],
+        "local_name_ar": row["local_name_ar"],
+        "part_used_ar": row["part_used_ar"],
+        "traditional_use_ar": row["traditional_use_ar"],
+        "conditions_ar": conditions_ar,
     }
 
 
@@ -274,13 +303,21 @@ def list_conditions():
     con = db()
     cur = con.cursor()
     cur.execute(
-        "SELECT c.id, c.name, COUNT(pc.plant_id) as plant_count "
+        "SELECT c.id, c.name, c.name_ar, COUNT(pc.plant_id) as plant_count "
         "FROM conditions c LEFT JOIN plant_conditions pc ON pc.condition_id=c.id "
         "GROUP BY c.id ORDER BY plant_count DESC"
     )
     rows = cur.fetchall()
     con.close()
-    return [{"id": r["id"], "name": r["name"], "plant_count": r["plant_count"]} for r in rows]
+    return [
+        {
+            "id": r["id"],
+            "name": r["name"],
+            "name_ar": r["name_ar"] or r["name"],
+            "plant_count": r["plant_count"],
+        }
+        for r in rows
+    ]
 
 
 @app.get("/api/conditions/{condition_id}")
@@ -289,13 +326,14 @@ def get_condition(condition_id: int):
     con = db()
     cur = con.cursor()
 
-    cur.execute("SELECT id, name FROM conditions WHERE id=?", (condition_id,))
+    cur.execute("SELECT id, name, name_ar FROM conditions WHERE id=?", (condition_id,))
     row = cur.fetchone()
     if not row:
         raise HTTPException(status_code=404, detail="Condition not found")
 
     cur.execute(
-        "SELECT p.id, p.scientific_name, p.local_name, p.family, p.part_used "
+        "SELECT p.id, p.scientific_name, p.local_name, p.family, p.part_used, "
+        "p.local_name_ar, p.family_ar, p.part_used_ar "
         "FROM plants p JOIN plant_conditions pc ON pc.plant_id=p.id "
         "WHERE pc.condition_id=? ORDER BY p.scientific_name",
         (condition_id,),
@@ -307,6 +345,9 @@ def get_condition(condition_id: int):
             "local_name": r["local_name"],
             "family": r["family"],
             "part_used": r["part_used"],
+            "local_name_ar": r["local_name_ar"],
+            "family_ar": r["family_ar"],
+            "part_used_ar": r["part_used_ar"],
         }
         for r in cur.fetchall()
     ]
@@ -329,6 +370,7 @@ def get_condition(condition_id: int):
     return {
         "id": row["id"],
         "name": row["name"],
+        "name_ar": row["name_ar"] or row["name"],
         "plant_count": len(plants),
         "plants": plants,
         "compounds": compounds,
@@ -375,7 +417,8 @@ def get_compound(compound_id: int):
         raise HTTPException(status_code=404, detail="Compound not found")
 
     cur.execute(
-        "SELECT p.id, p.scientific_name, p.local_name, p.family, pc.reference "
+        "SELECT p.id, p.scientific_name, p.local_name, p.family, pc.reference, "
+        "p.local_name_ar, p.family_ar "
         "FROM plants p JOIN plant_compounds pc ON pc.plant_id=p.id "
         "WHERE pc.compound_id=? ORDER BY p.scientific_name",
         (compound_id,),
@@ -387,6 +430,8 @@ def get_compound(compound_id: int):
             "local_name": r["local_name"],
             "family": r["family"],
             "reference": r["reference"],
+            "local_name_ar": r["local_name_ar"],
+            "family_ar": r["family_ar"],
         }
         for r in cur.fetchall()
     ]
@@ -412,7 +457,7 @@ def get_family(name: str):
     cur = con.cursor()
 
     cur.execute(
-        "SELECT id, scientific_name, local_name, part_used "
+        "SELECT id, scientific_name, local_name, part_used, family_ar, local_name_ar, part_used_ar "
         "FROM plants WHERE family=? ORDER BY scientific_name",
         (name,),
     )
@@ -426,26 +471,32 @@ def get_family(name: str):
             "scientific_name": r["scientific_name"],
             "local_name": r["local_name"],
             "part_used": r["part_used"],
+            "local_name_ar": r["local_name_ar"],
+            "part_used_ar": r["part_used_ar"],
         }
         for r in rows
     ]
 
     # conditions treated by plants in this family
     cur.execute(
-        "SELECT DISTINCT c.name FROM conditions c "
+        "SELECT DISTINCT c.name, c.name_ar FROM conditions c "
         "JOIN plant_conditions pc ON pc.condition_id=c.id "
         "JOIN plants p ON p.id=pc.plant_id "
         "WHERE p.family=? ORDER BY c.name",
         (name,),
     )
-    conditions = [r["name"] for r in cur.fetchall()]
+    cond_rows = cur.fetchall()
+    conditions = [r["name"] for r in cond_rows]
+    conditions_ar = [r["name_ar"] or r["name"] for r in cond_rows]
 
     con.close()
     return {
         "name": name,
+        "name_ar": rows[0]["family_ar"],
         "plant_count": len(plants),
         "plants": plants,
         "conditions": conditions,
+        "conditions_ar": conditions_ar,
     }
 
 
@@ -521,16 +572,23 @@ def overview_stats():
     cur.execute("SELECT COUNT(*) FROM plant_compounds"); comp_links = cur.fetchone()[0]
     # top conditions
     cur.execute(
-        "SELECT c.name, COUNT(pc.plant_id) cnt FROM conditions c "
+        "SELECT c.name, c.name_ar, COUNT(pc.plant_id) cnt FROM conditions c "
         "JOIN plant_conditions pc ON pc.condition_id=c.id "
         "GROUP BY c.id ORDER BY cnt DESC LIMIT 10"
     )
-    top_conditions = [{"name": r["name"], "count": r["cnt"]} for r in cur.fetchall()]
+    top_conditions = [
+        {"name": r["name"], "name_ar": r["name_ar"] or r["name"], "count": r["cnt"]}
+        for r in cur.fetchall()
+    ]
     # top families
     cur.execute(
-        "SELECT family, COUNT(*) cnt FROM plants WHERE family IS NOT NULL GROUP BY family ORDER BY cnt DESC LIMIT 10"
+        "SELECT family, family_ar, COUNT(*) cnt FROM plants WHERE family IS NOT NULL "
+        "GROUP BY family ORDER BY cnt DESC LIMIT 10"
     )
-    top_families = [{"name": r["family"], "count": r["cnt"]} for r in cur.fetchall()]
+    top_families = [
+        {"name": r["family"], "name_ar": r["family_ar"] or r["family"], "count": r["cnt"]}
+        for r in cur.fetchall()
+    ]
     con.close()
     return {
         "plants": plant_count,

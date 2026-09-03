@@ -80,7 +80,11 @@ def build_graph() -> dict:
     edges: list[dict] = []
 
     # ---- Plant nodes ----
-    cur.execute("SELECT id, scientific_name, local_name, family FROM plants")
+    # Scientific names and compound names carry no `label_ar`: binomials and
+    # chemical nomenclature stay Latin in Arabic scientific writing.
+    cur.execute(
+        "SELECT id, scientific_name, local_name, family, local_name_ar, family_ar FROM plants"
+    )
     for r in cur.fetchall():
         nid = f"plant:{r['id']}"
         nodes[nid] = {
@@ -88,20 +92,32 @@ def build_graph() -> dict:
             "type": "Plant",
             "label": r["scientific_name"],
             "local_name": r["local_name"],
+            "local_name_ar": r["local_name_ar"],
             "db_id": r["id"],
         }
         # BELONGS_TO edge to Family
         if r["family"]:
             fid = f"family:{r['family'].replace(' ', '_')}"
             if fid not in nodes:
-                nodes[fid] = {"id": fid, "type": "Family", "label": r["family"]}
+                nodes[fid] = {
+                    "id": fid,
+                    "type": "Family",
+                    "label": r["family"],
+                    "label_ar": r["family_ar"],
+                }
             edges.append({"source": nid, "target": fid, "type": "BELONGS_TO"})
 
     # ---- Condition nodes + TREATS edges ----
-    cur.execute("SELECT id, name FROM conditions")
+    cur.execute("SELECT id, name, name_ar FROM conditions")
     for r in cur.fetchall():
         cid = f"condition:{r['id']}"
-        nodes[cid] = {"id": cid, "type": "Condition", "label": r["name"], "db_id": r["id"]}
+        nodes[cid] = {
+            "id": cid,
+            "type": "Condition",
+            "label": r["name"],
+            "label_ar": r["name_ar"],
+            "db_id": r["id"],
+        }
 
     cur.execute("SELECT plant_id, condition_id FROM plant_conditions")
     for r in cur.fetchall():
@@ -289,9 +305,12 @@ def search_graph(query: str) -> dict:
     q = query.lower()
     matched_ids: set[str] = set()
     for node in g["nodes"]:
-        if q in node["label"].lower():
-            matched_ids.add(node["id"])
-        if node.get("local_name") and q in node["local_name"].lower():
+        # Arabic has no case distinction, so those fields are matched raw.
+        haystack_lower = [node["label"].lower()]
+        if node.get("local_name"):
+            haystack_lower.append(node["local_name"].lower())
+        haystack_raw = [node[k] for k in ("label_ar", "local_name_ar") if node.get(k)]
+        if any(q in h for h in haystack_lower) or any(query in h for h in haystack_raw):
             matched_ids.add(node["id"])
 
     # include 1-hop neighbours

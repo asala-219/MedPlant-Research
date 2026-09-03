@@ -3,6 +3,7 @@ import * as d3 from "d3";
 import type { GraphData, GraphNode } from "../../api/client";
 import { useLang } from "../../i18n/LangContext";
 import { t } from "../../i18n/translations";
+import { localName, nodeLabel } from "../../i18n/dataset";
 
 // Font Awesome unicode codepoints (Solid, weight 900)
 const FA_ICON: Record<string, string> = {
@@ -197,7 +198,10 @@ export function KnowledgeGraphViz({ data, onNodeClick, height = 560 }: Props) {
       .selectAll<SVGTextElement, SimNode>("text")
       .data(nodes.filter((n) => n.type !== "Compound"))
       .join("text")
-      .text((d) => (d.label.length > 24 ? d.label.slice(0, 22) + "…" : d.label))
+      .text((d) => {
+        const text = nodeLabel(lang, d);
+        return text.length > 24 ? text.slice(0, 22) + "…" : text;
+      })
       .attr("font-size", (d) => (d.type === "Condition" ? 11 : 9))
       .attr("font-weight", (d) => (d.type === "Condition" || d.type === "Family" ? 600 : 400))
       .attr("dy", (d) => -((d._r ?? 7) + 3))
@@ -271,8 +275,8 @@ export function KnowledgeGraphViz({ data, onNodeClick, height = 560 }: Props) {
         tooltip
           .style("display", "block")
           .html(
-            `<strong>${d.label}</strong>` +
-            (d.local_name ? `<br/><em>${d.local_name}</em>` : "") +
+            `<strong>${nodeLabel(lang, d)}</strong>` +
+            (d.local_name ? `<br/><em>${localName(lang, d)}</em>` : "") +
             `<br/><span style="opacity:.7">${nodeTypeLabel(d.type)} · ${d._deg ?? 0} ${(d._deg ?? 0) === 1 ? tr.graph_links_singular : tr.graph_links_plural}</span>`
           );
       })
@@ -302,7 +306,7 @@ export function KnowledgeGraphViz({ data, onNodeClick, height = 560 }: Props) {
       sim.stop();
       tooltip.remove();
     };
-  }, [data, height, onNodeClick]);
+  }, [data, height, onNodeClick, lang]);
 
   return (
     <svg

@@ -11,6 +11,7 @@ import {
 import { KnowledgeGraphViz, GraphLegend } from "../components/KnowledgeGraphViz";
 import { useLang } from "../../i18n/LangContext";
 import { t } from "../../i18n/translations";
+import { familyName, localName } from "../../i18n/dataset";
 
 export function CompoundDetail() {
   const { id } = useParams<{ id: string }>();
@@ -128,9 +129,16 @@ export function CompoundDetail() {
                   >
                     <span>
                       <span className="font-serif italic text-stone-800 group-hover:text-emerald-700">{p.scientific_name}</span>
-                      {p.local_name && <span className="text-stone-400 text-sm ms-2">({p.local_name})</span>}
+                      {p.local_name && <span className="text-stone-400 text-sm ms-2">({localName(lang, p)})</span>}
                     </span>
-                    {p.family && <span className="text-xs text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full shrink-0">{p.family}</span>}
+                    {p.family && (
+                      <span
+                        className="text-xs text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full shrink-0"
+                        title={p.family}
+                      >
+                        {familyName(lang, p)}
+                      </span>
+                    )}
                   </Link>
                 </li>
               ))}
