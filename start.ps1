@@ -1,4 +1,4 @@
-# OMEDB — start backend + frontend (Windows)
+# MedPlant — start backend + frontend (Windows)
 $ErrorActionPreference = "Stop"
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force | Out-Null
 

@@ -12,7 +12,7 @@ export function Chat() {
       {/* Header */}
       <div className="mb-4 shrink-0">
         <h2 className="text-sm font-bold tracking-[0.2em] uppercase text-emerald-600 mb-1">
-          GraphRAG Chatbot
+          {tr.chat_badge}
         </h2>
         <h1 className="text-3xl font-serif font-bold text-stone-900">{tr.chat_title}</h1>
         <p className="text-stone-500 mt-1">{tr.chat_subtitle}</p>

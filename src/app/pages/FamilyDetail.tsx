@@ -11,6 +11,7 @@ import {
 import { KnowledgeGraphViz, GraphLegend } from "../components/KnowledgeGraphViz";
 import { useLang } from "../../i18n/LangContext";
 import { t } from "../../i18n/translations";
+import { localName, partUsed, pick, pickList } from "../../i18n/dataset";
 
 export function FamilyDetail() {
   const { name } = useParams<{ name: string }>();
@@ -79,8 +80,11 @@ export function FamilyDetail() {
           {tr.family_detail_title}
         </span>
         <h1 className="text-4xl md:text-5xl font-serif font-bold text-stone-900 tracking-tight mb-2">
-          {data.name}
+          {pick(lang, data.name, data.name_ar)}
         </h1>
+        {lang === "ar" && data.name_ar && (
+          <p className="text-stone-400 text-lg mb-1">{data.name}</p>
+        )}
         <p className="text-stone-500">
           <strong className="text-stone-800">{data.plant_count}</strong> {tr.plant_count_label}
         </p>
@@ -96,7 +100,7 @@ export function FamilyDetail() {
                 <h3 className="text-xs font-bold uppercase tracking-wider text-stone-400">{tr.treated_conditions}</h3>
               </div>
               <div className="flex flex-wrap gap-2">
-                {data.conditions.map((c) => (
+                {pickList(lang, data.conditions, data.conditions_ar).map((c) => (
                   <span key={c} className="bg-red-50 text-red-700 border border-red-100 text-xs px-3 py-1.5 rounded-full font-medium">
                     {c}
                   </span>
@@ -124,9 +128,9 @@ export function FamilyDetail() {
                   >
                     <span>
                       <span className="font-serif italic text-stone-800 group-hover:text-emerald-700">{p.scientific_name}</span>
-                      {p.local_name && <span className="text-stone-400 text-sm ms-2">({p.local_name})</span>}
+                      {p.local_name && <span className="text-stone-400 text-sm ms-2">({localName(lang, p)})</span>}
                     </span>
-                    {p.part_used && <span className="text-xs text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full shrink-0">{p.part_used}</span>}
+                    {p.part_used && <span className="text-xs text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full shrink-0">{partUsed(lang, p)}</span>}
                   </Link>
                 </li>
               ))}

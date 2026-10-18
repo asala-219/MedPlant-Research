@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# OMEDB — start backend + frontend
+# MedPlant — start backend + frontend
 set -e
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"

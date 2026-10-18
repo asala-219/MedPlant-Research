@@ -86,8 +86,8 @@ export function ChatPanel({ variant = "page", initialQuestion = null }: Props) {
         detail.toLowerCase().includes("unavailable") ||
         detail.toLowerCase().includes("high demand");
       const errorText = isOverload
-        ? "The AI model is temporarily busy (high demand). Please retry in a moment."
-        : `Error: ${detail}`;
+        ? tr.chat_busy_error
+        : `${tr.chat_error_prefix}: ${detail}`;
       setMessages((prev) => [
         ...prev,
         { role: "assistant", content: errorText, error: true },
@@ -129,12 +129,10 @@ export function ChatPanel({ variant = "page", initialQuestion = null }: Props) {
             </div>
             <div>
               <p className="text-stone-600 font-medium mb-1">
-                {lang === "ar"
-                  ? "اسأل أي شيء عن النباتات الطبية العُمانية"
-                  : "Ask anything about Omani ethnomedicinal plants"}
+                {tr.chat_intro_prompt}
               </p>
               <p className="text-stone-400 text-sm">
-                {lang === "ar" ? "جرّب أحد هذه الأسئلة:" : "Try one of these questions:"}
+                {tr.chat_try_questions}
               </p>
             </div>
             <div className="flex flex-wrap gap-2 justify-center max-w-lg">
@@ -187,7 +185,7 @@ export function ChatPanel({ variant = "page", initialQuestion = null }: Props) {
                       }}
                       className="flex items-center gap-1.5 self-start text-xs font-medium text-amber-700 hover:text-amber-900 transition-colors"
                     >
-                      <RefreshCw className="w-3 h-3" /> Retry
+                      <RefreshCw className="w-3 h-3" /> {tr.chat_retry}
                     </button>
                   )}
                 </div>

@@ -40,7 +40,7 @@ export function Home() {
           <div className="relative max-w-3xl">
             <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-5">
               <Leaf className="w-3.5 h-3.5" />
-              OMEDB
+              MedPlant
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white leading-tight mb-4">
               {tr.hero_title}
@@ -69,16 +69,16 @@ export function Home() {
             <StatCard value={stats.compounds} label={tr.stat_compounds} icon={<FlaskConical className="w-5 h-5" />} accent="blue" />
             <StatCard value={stats.conditions} label={tr.stat_conditions} icon={<Stethoscope className="w-5 h-5" />} accent="red" />
             <StatCard value={stats.families} label={tr.stat_families} icon={<Leaf className="w-5 h-5" />} accent="amber" />
-            <StatCard value={stats.plant_condition_links} label="Condition Links" icon={<Network className="w-5 h-5" />} accent="purple" />
-            <StatCard value={stats.plant_compound_links} label="Compound Links" icon={<BarChart2 className="w-5 h-5" />} accent="teal" />
+            <StatCard value={stats.plant_condition_links} label={tr.stat_condition_links} icon={<Network className="w-5 h-5" />} accent="purple" />
+            <StatCard value={stats.plant_compound_links} label={tr.stat_compound_links} icon={<BarChart2 className="w-5 h-5" />} accent="teal" />
           </div>
         </section>
       )}
 
       {/* Features */}
       <section id="features" className="mb-16">
-        <h2 className="text-3xl font-serif font-bold text-stone-900 mb-2">Platform Features</h2>
-        <p className="text-stone-500 mb-8 max-w-2xl">Four integrated components for exploring Omani plant medicine tradition</p>
+        <h2 className="text-3xl font-serif font-bold text-stone-900 mb-2">{tr.home_platform_features_title}</h2>
+        <p className="text-stone-500 mb-8 max-w-2xl">{tr.home_platform_features_subtitle}</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {features.map(({ icon, title, desc, color, to }) => (
             <Link key={title} to={to} className="group bg-white border border-stone-200 rounded-2xl p-6 hover:border-emerald-300 hover:shadow-md transition-all">
@@ -93,12 +93,14 @@ export function Home() {
       {/* Top conditions chart */}
       {stats && (
         <section className="mb-16">
-          <h2 className="text-2xl font-serif font-bold text-stone-900 mb-6">Top Medical Conditions by Plant Count</h2>
+          <h2 className="text-2xl font-serif font-bold text-stone-900 mb-6">{tr.home_top_conditions_title}</h2>
           <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
             <div className="space-y-3">
               {stats.top_conditions.map((c) => (
                 <div key={c.name} className="flex items-center gap-3">
-                  <span className="text-sm text-stone-700 w-44 shrink-0 truncate">{c.name}</span>
+                  <span className="text-sm text-stone-700 w-44 shrink-0 truncate">
+                    {lang === "ar" ? c.name_ar : c.name}
+                  </span>
                   <div className="flex-1 bg-stone-100 rounded-full h-2.5 overflow-hidden">
                     <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(c.count / stats.top_conditions[0].count) * 100}%` }} />
                   </div>

@@ -8,10 +8,10 @@ export const t = {
     nav_graph: "Knowledge Graph",
     nav_chat: "Ask AI",
     nav_admin: "Admin",
-    nav_subtitle: "Omani Ethnomedicinal Plants",
+    nav_subtitle: "Omani Ethnomedicinal Plants Database",
 
     // Hero
-    hero_title: "Omani Ethnomedicinal Plant Knowledge Graph",
+    hero_title: "Omani Ethnomedicinal Plants Database",
     hero_desc:
       "A digital home for Omani healing plant tradition — combining a structured database with a relational knowledge graph to let researchers, clinicians, and the public explore 180 plants, 437 compounds, and 40 medical conditions.",
 
@@ -22,6 +22,8 @@ export const t = {
     stat_families: "Plant Families",
     stat_graph_nodes: "Graph Nodes",
     stat_graph_edges: "Graph Edges",
+    stat_condition_links: "Condition Links",
+    stat_compound_links: "Compound Links",
 
     // Table
     table_title: "Plant Registry",
@@ -35,6 +37,8 @@ export const t = {
     col_part: "Part Used",
     col_use: "Traditional Use",
     col_compounds: "Compounds",
+    compounds_short: "cpd",
+    compounds_short_plural: "cpds",
     col_conditions: "Conditions",
     col_source: "Source",
     view_profile: "View Profile",
@@ -86,6 +90,20 @@ export const t = {
     node_compound: "Compound",
     node_family: "Family",
     graph_tip: "Hover a node to spotlight its connections. Click to inspect. Drag to reposition. Scroll to zoom.",
+    graph_phase_label: "Phase 3 — Knowledge Graph",
+    graph_search_button: "Search Graph",
+    graph_view_label: "View",
+    graph_browse_condition_label: "Browse by Condition",
+    graph_selected_node_label: "Selected Node",
+    graph_open_plant_profile: "Open Plant Profile →",
+    graph_nodes_suffix: "nodes",
+    graph_edges_suffix: "edges",
+    graph_search_subgraph: "search sub-graph",
+    graph_edge_treats: "TREATS",
+    graph_edge_contains: "CONTAINS",
+    graph_edge_belongs_to: "BELONGS_TO",
+    graph_links_singular: "link",
+    graph_links_plural: "links",
 
     // Chat
     chat_title: "Ask OmaniEthno AI",
@@ -94,6 +112,12 @@ export const t = {
     send: "Send",
     chat_disclaimer: "AI answers are based on the knowledge graph and for research purposes only — not medical advice.",
     thinking: "Thinking…",
+    chat_badge: "GraphRAG Chatbot",
+    chat_intro_prompt: "Ask anything about Omani ethnomedicinal plants",
+    chat_try_questions: "Try one of these questions:",
+    chat_retry: "Retry",
+    chat_error_prefix: "Error",
+    chat_busy_error: "The AI model is temporarily busy (high demand). Please retry in a moment.",
 
     // Features
     feat1_title: "Structured Database",
@@ -104,6 +128,9 @@ export const t = {
     feat3_desc: "Ask natural-language questions; Gemini answers using the knowledge graph.",
     feat4_title: "Bilingual",
     feat4_desc: "Full Arabic and English interface for Omani and international audiences.",
+    home_platform_features_title: "Platform Features",
+    home_platform_features_subtitle: "Four integrated components for exploring Omani plant medicine tradition",
+    home_top_conditions_title: "Top Medical Conditions by Plant Count",
 
     // Admin
     admin_title: "Database Admin",
@@ -138,6 +165,26 @@ export const t = {
     admin_image_invalid: "Please upload a JPEG, PNG, WebP, or GIF image",
     admin_image_remove: "Remove image",
     admin_image_remove_confirm: "Remove this plant image?",
+    admin_badge: "Admin",
+    admin_pk: "PK",
+    admin_column_name_example: "e.g. notes",
+
+    // Plant detail
+    plant_not_found: "Plant not found.",
+    plant_quick_reference: "Quick Reference",
+    plant_relationship_subtitle: "Connections to conditions, compounds, and family",
+
+    // Root layout
+    toggle_language_title: "Toggle language / تغيير اللغة",
+    api_docs: "API Docs",
+    footer_subtitle: "Omani Ethnomedicinal Plants Database",
+    footer_disclaimer:
+      "Data for research and educational purposes only. Consult a medical professional before using any ethnomedicinal remedies.",
+
+    // Image gallery
+    gallery_prev_image: "Previous image",
+    gallery_next_image: "Next image",
+    gallery_image: "Image",
 
     // Misc
     no_data: "No data available",
@@ -162,6 +209,8 @@ export const t = {
     stat_families: "عائلة نباتية",
     stat_graph_nodes: "عقدة في الخريطة",
     stat_graph_edges: "ارتباط في الخريطة",
+    stat_condition_links: "روابط الحالات",
+    stat_compound_links: "روابط المركبات",
 
     table_title: "سجل النباتات",
     table_subtitle: "ابحث وفلتر قاعدة البيانات الكاملة للنباتات الطبية",
@@ -174,6 +223,8 @@ export const t = {
     col_part: "الجزء المستخدم",
     col_use: "الاستخدام التقليدي",
     col_compounds: "المركبات",
+    compounds_short: "مركب",
+    compounds_short_plural: "مركبات",
     col_conditions: "الحالات",
     col_source: "المصدر",
     view_profile: "عرض الملف",
@@ -222,6 +273,20 @@ export const t = {
     node_compound: "مركب",
     node_family: "عائلة",
     graph_tip: "مرّر فوق أي عقدة لإبراز ارتباطاتها. انقر لفحصها. اسحب لإعادة الموضع. مرّر للتكبير.",
+    graph_phase_label: "المرحلة ٣ — خريطة المعرفة",
+    graph_search_button: "ابحث في الخريطة",
+    graph_view_label: "العرض",
+    graph_browse_condition_label: "تصفح حسب الحالة",
+    graph_selected_node_label: "العقدة المحددة",
+    graph_open_plant_profile: "افتح ملف النبات ←",
+    graph_nodes_suffix: "عقد",
+    graph_edges_suffix: "روابط",
+    graph_search_subgraph: "مخطط فرعي للبحث",
+    graph_edge_treats: "يعالج",
+    graph_edge_contains: "يحتوي على",
+    graph_edge_belongs_to: "ينتمي إلى",
+    graph_links_singular: "رابط",
+    graph_links_plural: "روابط",
 
     chat_title: "اسأل مساعد النباتات الطبية",
     chat_subtitle: "اطرح أسئلة حول النباتات الطبية العُمانية بالعربية أو الإنجليزية",
@@ -229,6 +294,12 @@ export const t = {
     send: "إرسال",
     chat_disclaimer: "إجابات الذكاء الاصطناعي مستندة إلى خريطة المعرفة وتهدف للبحث العلمي فقط — وليست نصيحة طبية.",
     thinking: "يفكر…",
+    chat_badge: "مساعد GraphRAG",
+    chat_intro_prompt: "اسأل أي شيء عن النباتات الطبية العُمانية",
+    chat_try_questions: "جرّب أحد هذه الأسئلة:",
+    chat_retry: "إعادة المحاولة",
+    chat_error_prefix: "خطأ",
+    chat_busy_error: "نموذج الذكاء الاصطناعي مشغول مؤقتًا (طلب مرتفع). يُرجى إعادة المحاولة بعد قليل.",
 
     feat1_title: "قاعدة بيانات هيكلية",
     feat1_desc: "جدول قابل للبحث والتصفية لـ١٨٠ نباتًا مع التصنيف والاستخدامات والمركبات.",
@@ -238,6 +309,9 @@ export const t = {
     feat3_desc: "اطرح أسئلة بلغة طبيعية؛ يسترجع النموذج الإجابات من خريطة المعرفة.",
     feat4_title: "ثنائي اللغة",
     feat4_desc: "واجهة كاملة بالعربية والإنجليزية للجمهور العُماني والدولي.",
+    home_platform_features_title: "ميزات المنصة",
+    home_platform_features_subtitle: "أربعة مكونات متكاملة لاستكشاف تراث النباتات الطبية العُمانية",
+    home_top_conditions_title: "أكثر الحالات الطبية ارتباطًا بالنباتات",
 
     admin_title: "إدارة قاعدة البيانات",
     admin_subtitle: "إدارة الجداول والصفوف والأعمدة وإعادة بناء خريطة المعرفة",
@@ -271,6 +345,23 @@ export const t = {
     admin_image_invalid: "يرجى رفع صورة بصيغة JPEG أو PNG أو WebP أو GIF",
     admin_image_remove: "إزالة الصورة",
     admin_image_remove_confirm: "إزالة صورة هذا النبات؟",
+    admin_badge: "الإدارة",
+    admin_pk: "مفتاح رئيسي",
+    admin_column_name_example: "مثال: notes",
+
+    plant_not_found: "لم يتم العثور على النبات.",
+    plant_quick_reference: "مرجع سريع",
+    plant_relationship_subtitle: "ارتباطاته بالحالات والمركبات والعائلة",
+
+    toggle_language_title: "تبديل اللغة / Toggle language",
+    api_docs: "توثيق API",
+    footer_subtitle: "خريطة معرفة النباتات الطبية العُمانية",
+    footer_disclaimer:
+      "البيانات مخصصة للبحث والتعليم فقط. استشر مختصًا طبيًا قبل استخدام أي علاجات نباتية تقليدية.",
+
+    gallery_prev_image: "الصورة السابقة",
+    gallery_next_image: "الصورة التالية",
+    gallery_image: "صورة",
 
     no_data: "لا توجد بيانات",
     loading: "جارٍ التحميل…",

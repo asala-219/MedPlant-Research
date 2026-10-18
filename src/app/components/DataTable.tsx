@@ -4,6 +4,7 @@ import { Search, Filter, ChevronRight } from "lucide-react";
 import { api, type Plant, type Condition } from "../../api/client";
 import { useLang } from "../../i18n/LangContext";
 import { t } from "../../i18n/translations";
+import { familyName, localName, partUsed, pickList, sourceLabel } from "../../i18n/dataset";
 
 const PAGE = 30;
 
@@ -22,17 +23,23 @@ export function DataTable() {
   const [conditionFilter, setConditionFilter] = useState("");
   const [familyFilter, setFamilyFilter] = useState("");
   const [conditions, setConditions] = useState<Condition[]>([]);
-  const [families, setFamilies] = useState<string[]>([]);
+  // Filtering is always done on the English value; only the label is localized.
+  const [families, setFamilies] = useState<{ name: string; name_ar: string | null }[]>([]);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     api.conditions().then(setConditions).catch(console.error);
     api.plants({ limit: 200 }).then((r) => {
-      const fams = Array.from(
-        new Set(r.data.map((p) => p.family ?? "").filter(Boolean))
-      ).sort();
-      setFamilies(fams);
+      const byName = new Map<string, string | null>();
+      r.data.forEach((p) => {
+        if (p.family) byName.set(p.family, p.family_ar);
+      });
+      setFamilies(
+        Array.from(byName, ([name, name_ar]) => ({ name, name_ar })).sort((a, b) =>
+          a.name.localeCompare(b.name)
+        )
+      );
     }).catch(console.error);
   }, []);
 
@@ -63,14 +70,6 @@ export function DataTable() {
     setPlants([]);
   }
 
-  function sourceLabel(s: string | null) {
-    if (!s) return "—";
-    if (s.includes("Neelam")) return "Neelam";
-    if (s.includes("Divakar")) return "Divakar";
-    if (s.includes("Phyto")) return "Phyto";
-    return s;
-  }
-
   return (
     <div className="flex flex-col gap-6">
       {/* Filters */}
@@ -94,7 +93,7 @@ export function DataTable() {
             <option value="">{tr.all_conditions}</option>
             {conditions.map((c) => (
               <option key={c.id} value={c.name}>
-                {c.name} ({c.plant_count})
+                {lang === "ar" ? c.name_ar : c.name} ({c.plant_count})
               </option>
             ))}
           </select>
@@ -108,7 +107,9 @@ export function DataTable() {
           >
             <option value="">{tr.all_families}</option>
             {families.map((f) => (
-              <option key={f} value={f}>{f}</option>
+              <option key={f.name} value={f.name}>
+                {familyName(lang, { family: f.name, family_ar: f.name_ar })}
+              </option>
             ))}
           </select>
         </div>
@@ -147,21 +148,24 @@ export function DataTable() {
                   <span className="truncate block">{p.scientific_name}</span>
                 </td>
                 <td className="px-5 py-3.5 text-stone-700 whitespace-nowrap">
-                  {p.local_name || "—"}
+                  {localName(lang, p) || "—"}
                 </td>
                 <td className="px-5 py-3.5 whitespace-nowrap">
                   {p.family ? (
-                    <span className="bg-emerald-50 text-emerald-700 text-xs font-semibold px-2 py-0.5 rounded-md border border-emerald-100">
-                      {p.family}
+                    <span
+                      className="bg-emerald-50 text-emerald-700 text-xs font-semibold px-2 py-0.5 rounded-md border border-emerald-100"
+                      title={p.family}
+                    >
+                      {familyName(lang, p)}
                     </span>
                   ) : "—"}
                 </td>
                 <td className="px-5 py-3.5 text-stone-600 whitespace-nowrap text-xs">
-                  {p.part_used || "—"}
+                  {partUsed(lang, p) || "—"}
                 </td>
                 <td className="px-5 py-3.5">
                   <div className="flex flex-wrap gap-1 max-w-[180px]">
-                    {p.conditions.slice(0, 2).map((c) => (
+                    {pickList(lang, p.conditions, p.conditions_ar).slice(0, 2).map((c) => (
                       <span key={c} className="inline-block bg-red-50 text-red-700 text-xs px-2 py-0.5 rounded-full whitespace-nowrap border border-red-100">
                         {c}
                       </span>
@@ -176,13 +180,14 @@ export function DataTable() {
                 <td className="px-5 py-3.5 text-stone-500 whitespace-nowrap text-xs">
                   {p.compounds.length > 0 ? (
                     <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full border border-blue-100">
-                      {p.compounds.length} cpd{p.compounds.length > 1 ? "s" : ""}
+                      {p.compounds.length}{" "}
+                      {p.compounds.length > 1 ? tr.compounds_short_plural : tr.compounds_short}
                     </span>
                   ) : "—"}
                 </td>
                 <td className="px-5 py-3.5 whitespace-nowrap">
                   <span className="bg-stone-100 text-stone-600 text-xs px-2 py-0.5 rounded-full">
-                    {sourceLabel(p.source)}
+                    {sourceLabel(lang, p.source)}
                   </span>
                 </td>
                 <td className="px-5 py-3.5 text-end">

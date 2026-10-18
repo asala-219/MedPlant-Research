@@ -5,6 +5,7 @@ import { api, nodePath, type GraphData, type GraphNode, type Condition } from ".
 import { KnowledgeGraphViz, GraphLegend } from "../components/KnowledgeGraphViz";
 import { useLang } from "../../i18n/LangContext";
 import { t } from "../../i18n/translations";
+import { localName, nodeLabel } from "../../i18n/dataset";
 
 type ViewMode = "full" | "plants_conditions" | "plants_compounds" | "search";
 
@@ -20,6 +21,19 @@ export function KnowledgeGraph() {
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [conditions, setConditions] = useState<Condition[]>([]);
   const [stats, setStats] = useState<{ total_nodes: number; total_edges: number; nodes_by_type: Record<string, number>; edges_by_type: Record<string, number> } | null>(null);
+  const nodeTypeLabel = (type: string) => {
+    if (type === "Plant") return tr.node_plant;
+    if (type === "Condition") return tr.node_condition;
+    if (type === "Compound") return tr.node_compound;
+    if (type === "Family") return tr.node_family;
+    return type;
+  };
+  const edgeTypeLabel = (type: string) => {
+    if (type === "TREATS") return tr.graph_edge_treats;
+    if (type === "CONTAINS") return tr.graph_edge_contains;
+    if (type === "BELONGS_TO") return tr.graph_edge_belongs_to;
+    return type;
+  };
 
   useEffect(() => {
     api.conditions().then(setConditions).catch(console.error);
@@ -27,6 +41,7 @@ export function KnowledgeGraph() {
   }, []);
 
   useEffect(() => {
+    if (mode === "search") return;
     setLoading(true);
     let req: Promise<GraphData>;
 
@@ -97,7 +112,7 @@ export function KnowledgeGraph() {
     <main className="max-w-[1400px] mx-auto px-6 py-10 pb-24">
       <div className="mb-6">
         <h2 className="text-sm font-bold tracking-[0.2em] uppercase text-emerald-600 mb-1">
-          Phase 3 — Knowledge Graph
+          {tr.graph_phase_label}
         </h2>
         <h1 className="text-4xl font-serif font-bold text-stone-900">{tr.graph_title}</h1>
         <p className="text-stone-500 mt-2 max-w-2xl">{tr.graph_subtitle}</p>
@@ -109,13 +124,13 @@ export function KnowledgeGraph() {
           {Object.entries(stats.nodes_by_type).map(([type, count]) => (
             <div key={type} className="bg-white border border-stone-200 rounded-xl px-4 py-2.5 text-sm shadow-sm">
               <span className="font-bold text-stone-800">{count.toLocaleString()}</span>
-              <span className="text-stone-500 ms-1.5">{type} nodes</span>
+              <span className="text-stone-500 ms-1.5">{nodeTypeLabel(type)} {tr.graph_nodes_suffix}</span>
             </div>
           ))}
           {Object.entries(stats.edges_by_type).map(([type, count]) => (
             <div key={type} className="bg-white border border-stone-200 rounded-xl px-4 py-2.5 text-sm shadow-sm">
               <span className="font-bold text-stone-800">{count.toLocaleString()}</span>
-              <span className="text-stone-500 ms-1.5">{type} edges</span>
+              <span className="text-stone-500 ms-1.5">{edgeTypeLabel(type)} {tr.graph_edges_suffix}</span>
             </div>
           ))}
         </div>
@@ -143,13 +158,13 @@ export function KnowledgeGraph() {
               onClick={() => handleSearch(searchQuery)}
               className="mt-2 w-full py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors"
             >
-              Search Graph
+              {tr.graph_search_button}
             </button>
           </div>
 
           {/* View mode */}
           <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-3">View</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-3">{tr.graph_view_label}</p>
             <div className="flex flex-col gap-2">
               {modeBtn("plants_conditions", tr.show_plants_conditions)}
               {modeBtn("plants_compounds", tr.show_plants_compounds)}
@@ -159,7 +174,7 @@ export function KnowledgeGraph() {
 
           {/* Conditions quicklinks */}
           <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-3">Browse by Condition</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-3">{tr.graph_browse_condition_label}</p>
             <ul className="space-y-1 max-h-64 overflow-y-auto">
               {conditions.map((c) => (
                 <li key={c.id}>
@@ -167,7 +182,7 @@ export function KnowledgeGraph() {
                     onClick={() => handleConditionClick(c.id)}
                     className="w-full text-start text-sm text-stone-700 hover:text-emerald-700 py-1 px-2 rounded-lg hover:bg-emerald-50 transition-colors flex justify-between items-center"
                   >
-                    <span>{c.name}</span>
+                    <span>{lang === "ar" ? c.name_ar : c.name}</span>
                     <span className="text-xs text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded-full">{c.plant_count}</span>
                   </button>
                 </li>
@@ -178,20 +193,20 @@ export function KnowledgeGraph() {
           {/* Selected node panel */}
           {selectedNode && (
             <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 shadow-sm">
-              <p className="text-xs font-bold uppercase tracking-wider text-emerald-600 mb-2">Selected Node</p>
-              <p className="font-semibold text-stone-900 text-sm">{selectedNode.label}</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-emerald-600 mb-2">{tr.graph_selected_node_label}</p>
+              <p className="font-semibold text-stone-900 text-sm">{nodeLabel(lang, selectedNode)}</p>
               {selectedNode.local_name && (
-                <p className="text-stone-500 text-xs mt-1">{selectedNode.local_name}</p>
+                <p className="text-stone-500 text-xs mt-1">{localName(lang, selectedNode)}</p>
               )}
               <span className="inline-block mt-2 text-xs bg-white border border-emerald-200 text-emerald-700 px-2 py-0.5 rounded-full">
-                {selectedNode.type}
+                {nodeTypeLabel(selectedNode.type)}
               </span>
               {selectedNode.type === "Plant" && selectedNode.db_id && (
                 <Link
                   to={`/plant/${selectedNode.db_id}`}
                   className="block mt-3 text-xs text-emerald-700 font-semibold hover:underline"
                 >
-                  Open Plant Profile →
+                  {tr.graph_open_plant_profile}
                 </Link>
               )}
             </div>
@@ -210,8 +225,8 @@ export function KnowledgeGraph() {
           )}
           <GraphLegend />
           <p className="text-xs text-stone-400">
-            Showing {graph.nodes.length} nodes and {graph.edges.length} edges
-            {mode === "search" && " · search sub-graph"}
+            {tr.showing} {graph.nodes.length} {tr.graph_nodes_suffix} {tr.of} {graph.edges.length} {tr.graph_edges_suffix}
+            {mode === "search" && ` · ${tr.graph_search_subgraph}`}
           </p>
         </div>
       </div>

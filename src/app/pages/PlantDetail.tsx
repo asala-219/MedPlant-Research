@@ -6,6 +6,7 @@ import { KnowledgeGraphViz, GraphLegend } from "../components/KnowledgeGraphViz"
 import { PlantImageGallery } from "../components/PlantImageGallery";
 import { useLang } from "../../i18n/LangContext";
 import { t } from "../../i18n/translations";
+import { familyName, localName, partUsed, pickList } from "../../i18n/dataset";
 
 export function PlantDetail() {
   const { id } = useParams<{ id: string }>();
@@ -57,7 +58,7 @@ export function PlantDetail() {
     return (
       <main className="max-w-5xl mx-auto px-6 py-24 text-center flex flex-col items-center gap-6">
         <Leaf className="w-12 h-12 text-stone-200" />
-        <p className="text-stone-500">{error || "Plant not found."}</p>
+        <p className="text-stone-500">{error || tr.plant_not_found}</p>
         <Link to="/" className="text-emerald-600 font-semibold hover:underline">{tr.back}</Link>
       </main>
     );
@@ -88,7 +89,7 @@ export function PlantDetail() {
         </h1>
         {plant.local_name && (
           <p className="text-2xl text-stone-500">
-            {tr.local}: <strong className="text-stone-800">{plant.local_name}</strong>
+            {tr.local}: <strong className="text-stone-800">{localName(lang, plant)}</strong>
           </p>
         )}
       </div>
@@ -106,17 +107,27 @@ export function PlantDetail() {
 
           {/* Quick reference card */}
           <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-sm">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-4">Quick Reference</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-4">{tr.plant_quick_reference}</h3>
             <dl className="space-y-3 text-sm">
               {[
-                { label: tr.family, value: plant.family },
-                { label: tr.part_used, value: plant.part_used },
+                { label: tr.family, value: familyName(lang, plant) },
+                { label: tr.part_used, value: partUsed(lang, plant) },
                 { label: tr.source, value: plant.source },
               ].map(({ label, value }) =>
                 value ? (
-                  <div key={label} className="flex justify-between gap-2">
+                  <div key={label} className={label === tr.source ? "flex min-w-0 flex-col gap-1" : "flex min-w-0 justify-between gap-2"}>
                     <dt className="text-stone-500">{label}</dt>
-                    <dd className="font-semibold text-stone-800 text-end">{value}</dd>
+                    <dd className="min-w-0 break-words font-semibold leading-relaxed text-stone-800 text-end">
+                      {label === tr.source ? (
+                        <ol className="space-y-1 text-justify [text-justify:inter-word]">
+                          {value.split(/\s*;\s*/).map((source, sourceIndex) => (
+                            <li key={`${source}-${sourceIndex}`}>
+                              <span className="text-emerald-600">{sourceIndex + 1}-</span> {source}
+                            </li>
+                          ))}
+                        </ol>
+                      ) : value}
+                    </dd>
                   </div>
                 ) : null
               )}
@@ -131,7 +142,7 @@ export function PlantDetail() {
                 <h3 className="text-xs font-bold uppercase tracking-wider text-stone-400">{tr.conditions_treated}</h3>
               </div>
               <div className="flex flex-wrap gap-2">
-                {plant.conditions.map((c) => (
+                {pickList(lang, plant.conditions, plant.conditions_ar).map((c) => (
                   <span key={c} className="bg-red-50 text-red-700 border border-red-100 text-xs px-3 py-1.5 rounded-full font-medium">
                     {c}
                   </span>
@@ -154,7 +165,7 @@ export function PlantDetail() {
                       {r.scientific_name}
                     </Link>
                     {r.local_name && (
-                      <span className="text-stone-400 text-xs ml-1">({r.local_name})</span>
+                      <span className="text-stone-400 text-xs ml-1">({localName(lang, r)})</span>
                     )}
                   </li>
                 ))}
@@ -176,7 +187,9 @@ export function PlantDetail() {
               </div>
               <h2 className="text-xl font-serif font-bold text-stone-900">{tr.traditional_use}</h2>
             </div>
-            <p className="text-stone-700 leading-relaxed">{plant.traditional_use || tr.no_data}</p>
+            <p className="text-stone-700 leading-relaxed">
+              {(lang === "ar" ? plant.traditional_use_ar : plant.traditional_use) || tr.no_data}
+            </p>
           </div>
 
           {/* Compounds */}
@@ -219,16 +232,16 @@ export function PlantDetail() {
                   <Network className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-serif font-bold text-stone-900">Relationship Graph</h2>
+                  <h2 className="text-xl font-serif font-bold text-stone-900">{tr.relationship_graph}</h2>
                   <p className="text-xs text-stone-400">
-                    How <span className="italic">{plant.scientific_name}</span> connects to its conditions, compounds &amp; family
+                    <span className="italic">{plant.scientific_name}</span> — {tr.plant_relationship_subtitle}
                   </p>
                 </div>
               </div>
               <KnowledgeGraphViz data={graph} height={360} onNodeClick={handleNodeClick} />
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                 <GraphLegend compact />
-                <p className="text-xs text-stone-400">Click a node to open its page · hover to focus links · scroll to zoom</p>
+                <p className="text-xs text-stone-400">{tr.graph_tip}</p>
               </div>
             </div>
           )}

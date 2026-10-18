@@ -42,14 +42,14 @@ export function PlantImageGallery({ images, alt }: Props) {
           <button
             onClick={prev}
             className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/60"
-            aria-label="Previous image"
+            aria-label={tr.gallery_prev_image}
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button
             onClick={next}
             className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/60"
-            aria-label="Next image"
+            aria-label={tr.gallery_next_image}
           >
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -63,7 +63,7 @@ export function PlantImageGallery({ images, alt }: Props) {
                 className={`w-1.5 h-1.5 rounded-full transition-colors ${
                   i === index ? "bg-white" : "bg-white/50 hover:bg-white/80"
                 }`}
-                aria-label={`Image ${i + 1}`}
+                aria-label={`${tr.gallery_image} ${i + 1}`}
               />
             ))}
           </div>

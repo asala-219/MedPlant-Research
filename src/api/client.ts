@@ -148,6 +148,11 @@ export const ADMIN_TOKEN_KEY = "omaniethno_admin_token";
 // Types
 // ---------------------------------------------------------------------------
 
+/**
+ * Every human-readable dataset field has an Arabic twin (`*_ar`). Scientific
+ * names, compound names and IMPPAT ids stay Latin in both languages.
+ * Use the helpers in `src/i18n/dataset.ts` to read the right one.
+ */
 export interface Plant {
   id: number;
   family: string | null;
@@ -161,6 +166,11 @@ export interface Plant {
   conditions: string[];
   compounds: Compound[];
   related_plants?: RelatedPlant[];
+  family_ar: string | null;
+  local_name_ar: string | null;
+  part_used_ar: string | null;
+  traditional_use_ar: string | null;
+  conditions_ar: string[];
 }
 
 export interface PlantImage {
@@ -178,11 +188,13 @@ export interface RelatedPlant {
   id: number;
   scientific_name: string;
   local_name: string | null;
+  local_name_ar: string | null;
 }
 
 export interface Condition {
   id: number;
   name: string;
+  name_ar: string;
   plant_count: number;
 }
 
@@ -193,11 +205,15 @@ export interface PlantRef {
   family?: string | null;
   part_used?: string | null;
   reference?: string | null;
+  local_name_ar?: string | null;
+  family_ar?: string | null;
+  part_used_ar?: string | null;
 }
 
 export interface ConditionDetail {
   id: number;
   name: string;
+  name_ar: string;
   plant_count: number;
   plants: PlantRef[];
   compounds: { id: number; name: string; imppat_id: string | null }[];
@@ -213,9 +229,11 @@ export interface CompoundDetail {
 
 export interface FamilyDetail {
   name: string;
+  name_ar: string | null;
   plant_count: number;
   plants: PlantRef[];
   conditions: string[];
+  conditions_ar: string[];
 }
 
 export interface PlantsResponse {
@@ -232,6 +250,9 @@ export interface GraphNode {
   local_name?: string;
   imppat_id?: string;
   db_id?: number;
+  /** Absent on Plant and Compound nodes, whose labels stay Latin. */
+  label_ar?: string | null;
+  local_name_ar?: string | null;
 }
 
 export interface GraphEdge {
@@ -283,8 +304,8 @@ export interface StatsData {
   families: number;
   plant_condition_links: number;
   plant_compound_links: number;
-  top_conditions: { name: string; count: number }[];
-  top_families: { name: string; count: number }[];
+  top_conditions: { name: string; name_ar: string; count: number }[];
+  top_families: { name: string; name_ar: string; count: number }[];
 }
 
 // ---------------------------------------------------------------------------
