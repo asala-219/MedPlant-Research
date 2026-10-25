@@ -10,10 +10,12 @@ Schema:
 """
 
 import csv
+import hashlib
 import os
 import re
 import sqlite3
 from pathlib import Path
+from typing import Optional
 
 from translations_ar import apply_arabic_translations
 
@@ -21,13 +23,8 @@ BACKEND_DIR = Path(__file__).parent
 DATA_DIR = BACKEND_DIR / "data"
 DB_PATH = BACKEND_DIR / "omani_ethno.db"
 
-DEFAULT_CSV_CANDIDATES = [
-    DATA_DIR / "oman_medicinal_plants_consolidated.csv",
-    DATA_DIR / "Oman_Ethnomedicinal_Merged.csv",
-    BACKEND_DIR / "Oman_Ethnomedicinal_Merged.csv",
-    Path.home() / "Downloads" / "Oman_Ethnomedicinal_Merged.csv",
-    DATA_DIR / "Oman_Ethnomedicinal_Merged.sample.csv",
-]
+# The approved dataset. OMAN_ETHNO_CSV may override it for local experiments.
+DEFAULT_CSV_PATH = DATA_DIR / "oman_medicinal_plants_consolidated.csv"
 
 
 def _csv_cell(row: dict, *column_names: str) -> str:
@@ -43,7 +40,7 @@ def _csv_cell(row: dict, *column_names: str) -> str:
 
 
 def resolve_csv_path() -> Path:
-    """Pick the first existing CSV from env or known locations."""
+    """Return the CSV from OMAN_ETHNO_CSV, else the approved consolidated dataset."""
     env_path = os.getenv("OMAN_ETHNO_CSV")
     if env_path:
         p = Path(env_path).expanduser()
@@ -52,9 +49,8 @@ def resolve_csv_path() -> Path:
         raise FileNotFoundError(
             f"OMAN_ETHNO_CSV is set but file not found: {p}"
         )
-    for candidate in DEFAULT_CSV_CANDIDATES:
-        if candidate.is_file():
-            return candidate
+    if DEFAULT_CSV_PATH.is_file():
+        return DEFAULT_CSV_PATH
     raise FileNotFoundError(
         "Oman ethnomedicinal CSV not found. Place "
         "oman_medicinal_plants_consolidated.csv in backend/data/, "
@@ -82,17 +78,44 @@ def db_is_ready() -> bool:
         return False
 
 
-def ensure_db() -> None:
-    """Create the database from CSV on first run only. Never wipes an existing DB."""
-    if db_is_ready():
+def csv_fingerprint(csv_path: Path) -> str:
+    """SHA-256 of the CSV contents, used to detect a changed dataset."""
+    return hashlib.sha256(csv_path.read_bytes()).hexdigest()
+
+
+def _db_fingerprint() -> Optional[str]:
+    """Fingerprint of the CSV the current DB was built from, if recorded."""
+    try:
+        con = sqlite3.connect(DB_PATH)
+        try:
+            row = con.execute(
+                "SELECT value FROM dataset_meta WHERE key='csv_sha256'"
+            ).fetchone()
+        finally:
+            con.close()
+    except sqlite3.Error:
+        return None
+    return row[0] if row else None
+
+
+def ensure_db() -> bool:
+    """Make sure the DB reflects the approved CSV.
+
+    The DB is kept as-is (preserving admin edits) while the CSV is unchanged,
+    and rebuilt from scratch when the CSV changes or the DB was built from an
+    unknown dataset. Returns True when the DB was rebuilt.
+    """
+    csv_path = resolve_csv_path()
+    if db_is_ready() and _db_fingerprint() == csv_fingerprint(csv_path):
         # Apply any schema additions that may be missing (e.g. plant_images).
         con = sqlite3.connect(DB_PATH)
         con.executescript(SCHEMA)
         _migrate_plant_images(con)
         apply_arabic_translations(con)
         con.close()
-        return
+        return False
     build_db()
+    return True
 
 # ---------------------------------------------------------------------------
 # Disease/condition keyword extraction
@@ -330,6 +353,11 @@ CREATE TABLE IF NOT EXISTS plant_images (
     sort_order INTEGER NOT NULL DEFAULT 0
 );
 
+CREATE TABLE IF NOT EXISTS dataset_meta (
+    key   TEXT PRIMARY KEY,
+    value TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_plants_family      ON plants(family);
 CREATE INDEX IF NOT EXISTS idx_plants_sci         ON plants(scientific_name);
 CREATE INDEX IF NOT EXISTS idx_compounds_name     ON compounds(name);
@@ -356,9 +384,17 @@ def build_db():
     csv_path = resolve_csv_path()
     print(f"Loading ethnomedicinal data from {csv_path}")
 
-    con = sqlite3.connect(DB_PATH)
+    # Build into a fresh temp file and swap it in, so re-running never appends
+    # duplicate rows to an existing DB and a failed build leaves the old DB intact.
+    tmp_path = DB_PATH.with_suffix(".db.tmp")
+    tmp_path.unlink(missing_ok=True)
+    con = sqlite3.connect(tmp_path)
     cur = con.cursor()
     cur.executescript(SCHEMA)
+    cur.execute(
+        "INSERT INTO dataset_meta (key, value) VALUES ('csv_sha256', ?), ('csv_name', ?)",
+        (csv_fingerprint(csv_path), csv_path.name),
+    )
 
     with open(csv_path, encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
@@ -466,6 +502,7 @@ def build_db():
     con.commit()
     ar_counts = apply_arabic_translations(con)
     con.close()
+    tmp_path.replace(DB_PATH)
 
     print(f"DB built at {DB_PATH}")
     print(f"  Plants:    {len(plant_id_map)}")
@@ -475,4 +512,7 @@ def build_db():
 
 
 if __name__ == "__main__":
+    from graph import build_graph
+
     build_db()
+    build_graph()

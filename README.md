@@ -84,8 +84,9 @@ This creates `backend/.venv` and installs everything in `backend/requirements.tx
 
 On first startup, the backend builds `backend/omani_ethno.db` from a CSV file.
 
-The backend reads `backend/data/oman_medicinal_plants_consolidated.csv` by default.
-Legacy `Oman_Ethnomedicinal_Merged.csv` in the same folder is still supported as a fallback.
+The backend reads the approved dataset, `backend/data/oman_medicinal_plants_consolidated.csv`.
+When that CSV changes, the database and knowledge graph are rebuilt automatically on the next startup
+(admin edits are kept as long as the CSV is unchanged).
 
 If you want to use a custom CSV path, set:
 
