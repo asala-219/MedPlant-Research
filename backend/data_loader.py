@@ -1,5 +1,5 @@
 """
-Load Oman_Ethnomedicinal_Merged.csv into a normalized SQLite database.
+Load oman_medicinal_plants_consolidated.csv into a normalized SQLite database.
 
 Schema:
   plants          – one row per unique plant
@@ -22,11 +22,24 @@ DATA_DIR = BACKEND_DIR / "data"
 DB_PATH = BACKEND_DIR / "omani_ethno.db"
 
 DEFAULT_CSV_CANDIDATES = [
+    DATA_DIR / "oman_medicinal_plants_consolidated.csv",
     DATA_DIR / "Oman_Ethnomedicinal_Merged.csv",
     BACKEND_DIR / "Oman_Ethnomedicinal_Merged.csv",
     Path.home() / "Downloads" / "Oman_Ethnomedicinal_Merged.csv",
     DATA_DIR / "Oman_Ethnomedicinal_Merged.sample.csv",
 ]
+
+
+def _csv_cell(row: dict, *column_names: str) -> str:
+    """First non-empty cell among ``column_names``; treats ``NA`` as missing."""
+    for col in column_names:
+        raw = row.get(col)
+        if raw is None:
+            continue
+        val = str(raw).strip()
+        if val and val.upper() != "NA":
+            return val
+    return ""
 
 
 def resolve_csv_path() -> Path:
@@ -44,9 +57,8 @@ def resolve_csv_path() -> Path:
             return candidate
     raise FileNotFoundError(
         "Oman ethnomedicinal CSV not found. Place "
-        "Oman_Ethnomedicinal_Merged.csv in backend/data/ or ~/Downloads, "
-        "or set OMAN_ETHNO_CSV to its path. "
-        "Download from https://omanmedicinalplant.om/"
+        "oman_medicinal_plants_consolidated.csv in backend/data/, "
+        "or set OMAN_ETHNO_CSV to its path."
     )
 
 
@@ -357,26 +369,29 @@ def build_db():
     # spans many rows whose `Traditional use` / `Part use` columns DIFFER.
     # We must merge every row's text — otherwise we silently drop the majority
     # of a plant's documented uses (and therefore its conditions).
-    AGG_FIELDS = {
-        "family": "Family",
-        "local_name": "Local Name",
-        "part_used": "Part use",
-        "traditional_use": "Traditional use",
-        "source": "Source",
-    }
     plant_rows: dict[str, dict[str, list[str]]] = {}
     plant_order: list[str] = []
 
     for row in rows:
-        sci = row["Plant Name"].strip()
+        sci = _csv_cell(row, "Plant Name (Botanical/Scientific Name)", "Plant Name")
         if not sci:
             continue
         if sci not in plant_rows:
-            plant_rows[sci] = {k: [] for k in AGG_FIELDS}
+            plant_rows[sci] = {k: [] for k in (
+                "family", "local_name", "part_used", "traditional_use", "source"
+            )}
             plant_order.append(sci)
         rec = plant_rows[sci]
-        for key, col in AGG_FIELDS.items():
-            val = (row.get(col) or "").strip()
+        field_values = {
+            "family": _csv_cell(row, "Family"),
+            "local_name": _csv_cell(row, "Local Name (Arabic)", "Local Name"),
+            "part_used": _csv_cell(row, "Part Used", "Part use"),
+            "traditional_use": _csv_cell(row, "Traditional Uses", "Traditional use"),
+            "source": _csv_cell(
+                row, "Reference (Ethnomedicinal)", "Source"
+            ),
+        }
+        for key, val in field_values.items():
             if val and val not in rec[key]:
                 rec[key].append(val)
 
@@ -401,17 +416,21 @@ def build_db():
     compound_id_map: dict[str, int] = {}
 
     for row in rows:
-        sci = row["Plant Name"].strip()
+        sci = _csv_cell(row, "Plant Name (Botanical/Scientific Name)", "Plant Name")
         if sci not in plant_id_map:
             continue
         plant_id = plant_id_map[sci]
 
-        compound_name = row["Phytochemical name"].strip()
+        compound_name = _csv_cell(row, "Phytochemical Name", "Phytochemical name")
         if not compound_name:
             continue
 
         if compound_name not in compound_id_map:
-            imppat = row["IMPPAT Phytochemical identifier"].strip() or None
+            imppat = _csv_cell(
+                row,
+                "IMPPAT Phytochemical Identifier",
+                "IMPPAT Phytochemical identifier",
+            ) or None
             cur.execute(
                 "INSERT OR IGNORE INTO compounds (name, imppat_id) VALUES (?,?)",
                 (compound_name, imppat),
@@ -420,7 +439,7 @@ def build_db():
             compound_id_map[compound_name] = cur.fetchone()[0]
 
         compound_id = compound_id_map[compound_name]
-        ref = row["references"].strip() or None
+        ref = _csv_cell(row, "References (Phytochemical)", "references") or None
         cur.execute(
             "INSERT OR IGNORE INTO plant_compounds (plant_id, compound_id, reference) VALUES (?,?,?)",
             (plant_id, compound_id, ref),

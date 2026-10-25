@@ -84,10 +84,8 @@ This creates `backend/.venv` and installs everything in `backend/requirements.tx
 
 On first startup, the backend builds `backend/omani_ethno.db` from a CSV file.
 
-You have two options:
-
-- Full dataset: copy `Oman_Ethnomedicinal_Merged.csv` into `backend/data/`
-- Sample dataset: use the included `backend/data/Oman_Ethnomedicinal_Merged.sample.csv`
+The backend reads `backend/data/oman_medicinal_plants_consolidated.csv` by default.
+Legacy `Oman_Ethnomedicinal_Merged.csv` in the same folder is still supported as a fallback.
 
 If you want to use a custom CSV path, set:
 
