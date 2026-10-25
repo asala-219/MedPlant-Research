@@ -62,9 +62,9 @@ from admin import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    ensure_db()
+    db_rebuilt = ensure_db()
     ensure_upload_dirs()
-    if not GRAPH_PATH.exists():
+    if db_rebuilt or not GRAPH_PATH.exists():
         build_graph()
     yield
 

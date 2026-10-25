@@ -1,5 +1,18 @@
 export type Lang = "en" | "ar";
 
+/** Replace `{key}` placeholders with locale-formatted numbers. */
+export function fillStatsTemplate(
+  template: string,
+  vars: Record<string, number>,
+  lang: Lang,
+): string {
+  const nf = new Intl.NumberFormat(lang === "ar" ? "ar-OM" : "en");
+  return template.replace(/\{(\w+)\}/g, (_, key: string) => {
+    const n = vars[key];
+    return n === undefined ? `{${key}}` : nf.format(n);
+  });
+}
+
 export const t = {
   en: {
     // Nav
@@ -13,7 +26,9 @@ export const t = {
     // Hero
     hero_title: "Omani Ethnomedicinal Plants Database",
     hero_desc:
-      "A digital home for Omani healing plant tradition — combining a structured database with a relational knowledge graph to let researchers, clinicians, and the public explore 180 plants, 437 compounds, and 40 medical conditions.",
+      "A digital home for Omani healing plant tradition — combining a structured database with a relational knowledge graph to let researchers, clinicians, and the public explore {plants} plants, {compounds} compounds, and {conditions} medical conditions.",
+    hero_desc_loading:
+      "A digital home for Omani healing plant tradition — combining a structured database with a relational knowledge graph for researchers, clinicians, and the public.",
 
     // Stats
     stat_plants: "Plants",
@@ -121,7 +136,10 @@ export const t = {
 
     // Features
     feat1_title: "Structured Database",
-    feat1_desc: "Fully searchable and filterable table of 180 plants with taxonomy, traditional uses, and phytochemicals.",
+    feat1_desc:
+      "Fully searchable and filterable table of {plants} plants with taxonomy, traditional uses, and phytochemicals.",
+    feat1_desc_loading:
+      "Fully searchable and filterable plant table with taxonomy, traditional uses, and phytochemicals.",
     feat2_title: "Knowledge Graph",
     feat2_desc: "Interactive D3 force-graph mapping Plants → Conditions → Compounds → Families.",
     feat3_title: "GraphRAG Chatbot",
@@ -201,7 +219,9 @@ export const t = {
 
     hero_title: "خريطة معرفة النباتات الطبية العُمانية",
     hero_desc:
-      "منصة رقمية لإحياء تراث النبات العلاجي العُماني — تجمع بين قاعدة بيانات هيكلية وخريطة معرفية علائقية تتيح للباحثين والأطباء والجمهور استكشاف ١٨٠ نباتًا و٤٣٧ مركبًا و٤٠ حالةً طبية.",
+      "منصة رقمية لإحياء تراث النبات العلاجي العُماني — تجمع بين قاعدة بيانات هيكلية وخريطة معرفية علائقية تتيح للباحثين والأطباء والجمهور استكشاف {plants} نباتًا و{compounds} مركبًا و{conditions} حالةً طبية.",
+    hero_desc_loading:
+      "منصة رقمية لإحياء تراث النبات العلاجي العُماني — تجمع بين قاعدة بيانات هيكلية وخريطة معرفية علائقية للباحثين والأطباء والجمهور.",
 
     stat_plants: "نبات",
     stat_compounds: "مركب كيميائي",
@@ -302,7 +322,9 @@ export const t = {
     chat_busy_error: "نموذج الذكاء الاصطناعي مشغول مؤقتًا (طلب مرتفع). يُرجى إعادة المحاولة بعد قليل.",
 
     feat1_title: "قاعدة بيانات هيكلية",
-    feat1_desc: "جدول قابل للبحث والتصفية لـ١٨٠ نباتًا مع التصنيف والاستخدامات والمركبات.",
+    feat1_desc: "جدول قابل للبحث والتصفية لـ{plants} نباتًا مع التصنيف والاستخدامات والمركبات.",
+    feat1_desc_loading:
+      "جدول قابل للبحث والتصفية للنباتات مع التصنيف والاستخدامات والمركبات.",
     feat2_title: "خريطة المعرفة",
     feat2_desc: "رسم بياني تفاعلي يربط النباتات بالحالات الطبية والمركبات والعائلات.",
     feat3_title: "مساعد ذكي",
