@@ -204,11 +204,14 @@ def list_plants(
         })
 
     # total count
-    count_sql = "SELECT COUNT(DISTINCT p.id) FROM plants p"
+    count_sql = (
+        "SELECT COUNT(DISTINCT p.scientific_name) FROM plants p "
+        "WHERE p.scientific_name IS NOT NULL AND TRIM(p.scientific_name) != ''"
+    )
     if joins:
         count_sql += " " + " ".join(joins)
     if wheres:
-        count_sql += " WHERE " + " AND ".join(wheres)
+        count_sql += " AND " + " AND ".join(wheres)
     cur.execute(count_sql, params[:-2])
     total = cur.fetchone()[0]
 
@@ -564,7 +567,11 @@ def full_graph(
 def overview_stats():
     con = db()
     cur = con.cursor()
-    cur.execute("SELECT COUNT(*) FROM plants"); plant_count = cur.fetchone()[0]
+    cur.execute(
+        "SELECT COUNT(DISTINCT scientific_name) FROM plants "
+        "WHERE scientific_name IS NOT NULL AND TRIM(scientific_name) != ''"
+    )
+    plant_count = cur.fetchone()[0]
     cur.execute("SELECT COUNT(*) FROM compounds"); compound_count = cur.fetchone()[0]
     cur.execute("SELECT COUNT(*) FROM conditions"); condition_count = cur.fetchone()[0]
     cur.execute("SELECT COUNT(DISTINCT family) FROM plants"); family_count = cur.fetchone()[0]

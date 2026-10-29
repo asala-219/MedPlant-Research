@@ -23,12 +23,24 @@ export function Home() {
   const { lang } = useLang();
   const tr = t[lang];
   const [stats, setStats] = useState<StatsData | null>(null);
+  /** Authoritative plant count from the registry list (`COUNT(DISTINCT id)`). */
+  const [registryPlantTotal, setRegistryPlantTotal] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    api.stats()
-      .then((data) => {
-        if (!cancelled) setStats(data);
+    Promise.all([api.stats(), api.plants({ limit: 1 })])
+      .then(([statsData, plantsPage]) => {
+        if (cancelled) return;
+        setStats(statsData);
+        setRegistryPlantTotal(plantsPage.total);
+        if (
+          import.meta.env.DEV &&
+          statsData.plants !== plantsPage.total
+        ) {
+          console.warn(
+            `[MedPlant] /api/stats plants (${statsData.plants}) != registry total (${plantsPage.total}); showing registry total.`,
+          );
+        }
       })
       .catch(console.error);
     return () => {
@@ -36,16 +48,18 @@ export function Home() {
     };
   }, []);
 
+  const plantCount = registryPlantTotal ?? stats?.plants ?? 0;
+
   const heroDesc = stats
     ? fillStatsTemplate(
         tr.hero_desc,
-        { plants: stats.plants, compounds: stats.compounds, conditions: stats.conditions },
+        { plants: plantCount, compounds: stats.compounds, conditions: stats.conditions },
         lang,
       )
     : tr.hero_desc_loading;
 
   const feat1Desc = stats
-    ? fillStatsTemplate(tr.feat1_desc, { plants: stats.plants }, lang)
+    ? fillStatsTemplate(tr.feat1_desc, { plants: plantCount }, lang)
     : tr.feat1_desc_loading;
 
   const features: FeatureItem[] = [
@@ -106,7 +120,7 @@ export function Home() {
       {stats && (
         <section className="mb-16">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <StatCard value={formatStat(stats.plants, lang)} label={tr.stat_plants} icon={<Leaf className="w-5 h-5" />} accent="emerald" />
+            <StatCard value={formatStat(plantCount, lang)} label={tr.stat_plants} icon={<Leaf className="w-5 h-5" />} accent="emerald" />
             <StatCard value={formatStat(stats.compounds, lang)} label={tr.stat_compounds} icon={<FlaskConical className="w-5 h-5" />} accent="blue" />
             <StatCard value={formatStat(stats.conditions, lang)} label={tr.stat_conditions} icon={<Stethoscope className="w-5 h-5" />} accent="red" />
             <StatCard value={formatStat(stats.families, lang)} label={tr.stat_families} icon={<Leaf className="w-5 h-5" />} accent="amber" />

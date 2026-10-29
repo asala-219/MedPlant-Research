@@ -508,7 +508,10 @@ def build_db():
     print(f"  Plants:    {len(plant_id_map)}")
     print(f"  Compounds: {len(compound_id_map)}")
     print(f"  Conditions: {len(condition_id_map)}")
-    print(f"  Arabic:    {ar_counts['plants']} plants, {ar_counts['conditions']} conditions")
+    print(
+        f"  Arabic:    {ar_counts['plants']} plant rows updated, "
+        f"{ar_counts['conditions']} condition rows updated"
+    )
 
 
 if __name__ == "__main__":

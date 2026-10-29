@@ -31,10 +31,55 @@ export function resolveAssetUrl(url: string | null | undefined): string | null {
   return url;
 }
 
-async function get<T>(path: string, params?: Record<string, string | number | undefined>): Promise<T> {
-  const res = await fetch(buildApiUrl(path, params));
+async function get<T>(
+  path: string,
+  params?: Record<string, string | number | undefined>,
+  init?: RequestInit,
+): Promise<T> {
+  const res = await fetch(buildApiUrl(path, params), {
+    cache: "no-store",
+    ...init,
+  });
   if (!res.ok) throw new Error(`API ${path} → ${res.status}`);
   return res.json();
+}
+
+function toStatInt(value: unknown): number {
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? Math.trunc(n) : 0;
+}
+
+function normalizeStatsData(raw: Record<string, unknown>): StatsData {
+  const top_conditions = Array.isArray(raw.top_conditions)
+    ? raw.top_conditions.map((row) => {
+        const item = row as Record<string, unknown>;
+        return {
+          name: String(item.name ?? ""),
+          name_ar: String(item.name_ar ?? item.name ?? ""),
+          count: toStatInt(item.count),
+        };
+      })
+    : [];
+  const top_families = Array.isArray(raw.top_families)
+    ? raw.top_families.map((row) => {
+        const item = row as Record<string, unknown>;
+        return {
+          name: String(item.name ?? ""),
+          name_ar: String(item.name_ar ?? item.name ?? ""),
+          count: toStatInt(item.count),
+        };
+      })
+    : [];
+  return {
+    plants: toStatInt(raw.plants),
+    compounds: toStatInt(raw.compounds),
+    conditions: toStatInt(raw.conditions),
+    families: toStatInt(raw.families),
+    plant_condition_links: toStatInt(raw.plant_condition_links),
+    plant_compound_links: toStatInt(raw.plant_compound_links),
+    top_conditions,
+    top_families,
+  };
 }
 
 async function post<T>(path: string, body: unknown, token?: string): Promise<T> {
@@ -335,7 +380,7 @@ export const api = {
 
   family: (name: string) => get<FamilyDetail>(`/api/families/${encodeURIComponent(name)}`),
 
-  stats: () => get<StatsData>("/api/stats"),
+  stats: async () => normalizeStatsData(await get<Record<string, unknown>>("/api/stats")),
 
   graphStats: () => get<{ total_nodes: number; total_edges: number; nodes_by_type: Record<string, number>; edges_by_type: Record<string, number> }>("/api/graph/stats"),
 

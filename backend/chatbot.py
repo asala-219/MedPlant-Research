@@ -6,11 +6,13 @@ and Google Gemini (cloud) for answer generation. No local Ollama required.
 """
 
 import os
+import sqlite3
 
 from google import genai
 from google.genai import errors as genai_errors
 from google.genai import types
 
+from graph import DB_PATH
 from graph_rag import GraphRAGPipeline, RetrievalOutput
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
@@ -25,10 +27,27 @@ _client: genai.Client | None = None
 # System prompt — chain-of-retrieval with citation instructions
 # ─────────────────────────────────────────────────────────────────────────────
 
-SYSTEM_PROMPT = """\
+def _dataset_counts() -> tuple[int, int, int]:
+    con = sqlite3.connect(DB_PATH)
+    try:
+        cur = con.cursor()
+        cur.execute("SELECT COUNT(*) FROM plants")
+        plants = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM compounds")
+        compounds = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM conditions")
+        conditions = cur.fetchone()[0]
+        return int(plants), int(compounds), int(conditions)
+    finally:
+        con.close()
+
+
+def build_system_prompt() -> str:
+    plant_count, compound_count, condition_count = _dataset_counts()
+    return f"""\
 You are **OmaniEthno Assistant**, a bilingual (Arabic/English) expert on Omani \
 traditional ethnomedicinal plants. You are powered by a knowledge graph of \
-180 plants, 437 phytochemical compounds, and 40 medical conditions drawn from \
+{plant_count} plants, {compound_count} phytochemical compounds, and {condition_count} medical conditions drawn from \
 authenticated ethnobotanical research.
 
 ## Response Protocol
@@ -53,6 +72,9 @@ authenticated ethnobotanical research.
 7. **Never** give medical prescriptions, dosage advice, or treatment recommendations.
    Always include a disclaimer that this is for research purposes only.
 """
+
+
+SYSTEM_PROMPT = build_system_prompt()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -92,7 +114,7 @@ def _get_client() -> genai.Client:
 
 def _gemini_chat(messages: list[dict]) -> str:
     """Send messages to Gemini and return the assistant reply."""
-    system = SYSTEM_PROMPT
+    system = build_system_prompt()
     if messages and messages[0].get("role") == "system":
         system = messages[0]["content"]
 
@@ -157,7 +179,7 @@ def chat(
     result: RetrievalOutput = _pipeline.retrieve(message, top_k=8)
 
     # Build the LLM messages
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    messages = [{"role": "system", "content": build_system_prompt()}]
 
     # Include recent history (cap at 3 turns to stay within context budget)
     if history:
@@ -185,7 +207,7 @@ def chat_with_debug(
 
     result: RetrievalOutput = _pipeline.retrieve(message)
 
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    messages = [{"role": "system", "content": build_system_prompt()}]
     if history:
         for turn in history[-6:]:
             role = turn.get("role")
